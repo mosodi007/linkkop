@@ -2,6 +2,8 @@ import { supabase } from './supabase';
 import type { PostRow, ProfileRow } from '../types/database';
 import type { Post } from './discover';
 
+export type { Post } from './discover';
+
 type PostWithAuthor = PostRow & {
   profiles: Pick<ProfileRow, 'id' | 'full_name' | 'avatar_url' | 'city'> | null;
 };
