@@ -34,6 +34,7 @@
     "lucide-react-native": "^0.487.0",
     "nativewind": "^4.1.23",
     "react": "18.3.1",
+    "react-dom": "^18.3.1",
     "react-i18next": "^16.5.4",
     "react-native": "0.76.5",
     "react-native-gesture-handler": "~2.20.2",
@@ -42,6 +43,7 @@
     "react-native-screens": "~4.3.0",
     "react-native-svg": "15.8.0",
     "react-native-url-polyfill": "^2.0.0",
+    "react-native-web": "^0.21.2",
     "resolve-from": "^5.0.0"
   },
   "devDependencies": {
