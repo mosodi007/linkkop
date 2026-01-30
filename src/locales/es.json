@@ -1,0 +1,13 @@
+{
+  "landing": {
+    "tagline": "Conoce nuevos contactos en tu zona. Conecta con personas cercanas según ubicación e intereses en común.",
+    "getStarted": "Comenzar",
+    "signIn": "Iniciar sesión",
+    "language": "Idioma"
+  },
+  "languages": {
+    "en": "English",
+    "es": "Español",
+    "fr": "Français"
+  }
+}

@@ -1,0 +1,217 @@
+export interface User {
+  id: string;
+  name: string;
+  age: number;
+  gender: 'male' | 'female' | 'other';
+  city: string;
+  distance: number;
+  photo: string;
+  bio: string;
+  interests: string[];
+  socialNetworks: {
+    linkedin?: string;
+    twitter?: string;
+    instagram?: string;
+    facebook?: string;
+  };
+  phone: string;
+  occupation: string;
+  messenger: string[];
+}
+
+const MESSENGER_ICONS: Record<string, string> = {
+  whatsapp: '/WhatsApp.png',
+  signal: '/Signal.png',
+  telegram: '/Telegram.png',
+  viber: '/Viber.png',
+  wechat: '/WeChat.png',
+  line: '/LINE.png',
+  imo: '/IMO.png',
+};
+
+export function getMessengerIconUrl(messenger: string): string | undefined {
+  return MESSENGER_ICONS[messenger.toLowerCase()];
+}
+
+export const mockUsers: User[] = [
+  {
+    id: '1',
+    name: 'Amina Okonkwo',
+    age: 28,
+    gender: 'female',
+    city: 'Lagos',
+    distance: 2.5,
+    photo: 'https://images.unsplash.com/photo-1668752741330-8adc5cef7485?w=400&h=400&fit=crop',
+    bio: 'Marketing lead passionate about brand storytelling and connecting with people.',
+    interests: ['Business', 'Networking', 'Tech'],
+    socialNetworks: { linkedin: 'amina-okonkwo', twitter: '@aminao', instagram: '@amina.o' },
+    phone: '+234 XXX XXX 7845',
+    occupation: 'Marketing Manager',
+    messenger: ['whatsapp', 'telegram'],
+  },
+  {
+    id: '2',
+    name: 'Chukwudi Eze',
+    age: 32,
+    gender: 'male',
+    city: 'Lagos',
+    distance: 5.1,
+    photo: 'https://images.unsplash.com/photo-1619452220963-4da4e145aba9?w=400&h=400&fit=crop',
+    bio: 'Software engineer building products that make a difference.',
+    interests: ['Business', 'Tech', 'Startups'],
+    socialNetworks: { linkedin: 'chukwudi-eze', facebook: 'chukwudi.eze', instagram: '@chukwudi' },
+    phone: '+234 XXX XXX 9234',
+    occupation: 'Software Engineer',
+    messenger: ['whatsapp', 'signal'],
+  },
+  {
+    id: '3',
+    name: 'Funmi Adeyemi',
+    age: 25,
+    gender: 'female',
+    city: 'Lagos',
+    distance: 1.8,
+    photo: 'https://images.unsplash.com/photo-1758611972971-1c8b9c6d7822?w=400&h=400&fit=crop',
+    bio: 'Fashion designer and creative. Always up for a good conversation.',
+    interests: ['Fashion', 'Networking', 'Art'],
+    socialNetworks: { twitter: '@funmi_a', instagram: '@funmi.adeyemi', linkedin: 'funmi-adeyemi' },
+    phone: '+234 XXX XXX 5678',
+    occupation: 'Fashion Designer',
+    messenger: ['whatsapp', 'telegram', 'line'],
+  },
+  {
+    id: '4',
+    name: 'Zainab Ibrahim',
+    age: 30,
+    gender: 'female',
+    city: 'Lagos',
+    distance: 3.2,
+    photo: 'https://images.unsplash.com/photo-1687422808311-a776f467a468?w=400&h=400&fit=crop',
+    bio: 'Business consultant helping SMEs grow. Love networking and coffee.',
+    interests: ['Business', 'Networking', 'Finance'],
+    socialNetworks: { linkedin: 'zainab-ibrahim', instagram: '@zainab.i', facebook: 'zainab.ibrahim' },
+    phone: '+234 XXX XXX 3421',
+    occupation: 'Business Consultant',
+    messenger: ['whatsapp', 'viber'],
+  },
+  {
+    id: '5',
+    name: 'Tunde Bakare',
+    age: 29,
+    gender: 'male',
+    city: 'Lagos',
+    distance: 4.7,
+    photo: 'https://images.unsplash.com/photo-1668752600261-e56e7f3780b6?w=400&h=400&fit=crop',
+    bio: 'Financial analyst. Interested in markets, tech, and meeting new people.',
+    interests: ['Business', 'Networking', 'Finance'],
+    socialNetworks: { linkedin: 'tunde-bakare', twitter: '@tunde_b', instagram: '@tundebakare' },
+    phone: '+234 XXX XXX 8912',
+    occupation: 'Financial Analyst',
+    messenger: ['whatsapp', 'telegram', 'signal'],
+  },
+  {
+    id: '6',
+    name: 'Chioma Nwosu',
+    age: 26,
+    gender: 'female',
+    city: 'Lagos',
+    distance: 7.2,
+    photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop',
+    bio: 'UX designer focused on inclusive, user-centered products.',
+    interests: ['Tech', 'Networking', 'Design'],
+    socialNetworks: { linkedin: 'chioma-nwosu', instagram: '@chioma.n' },
+    phone: '+234 XXX XXX 2341',
+    occupation: 'UX Designer',
+    messenger: ['whatsapp', 'line'],
+  },
+  {
+    id: '7',
+    name: 'Emeka Okafor',
+    age: 34,
+    gender: 'male',
+    city: 'Lagos',
+    distance: 8.5,
+    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
+    bio: 'Entrepreneur and sports enthusiast. Always building something new.',
+    interests: ['Business', 'Sports', 'Networking'],
+    socialNetworks: { linkedin: 'emeka-okafor', twitter: '@emeka_o' },
+    phone: '+234 XXX XXX 6789',
+    occupation: 'Entrepreneur',
+    messenger: ['whatsapp', 'wechat'],
+  },
+  {
+    id: '8',
+    name: 'Ngozi Eze',
+    age: 27,
+    gender: 'female',
+    city: 'Lagos',
+    distance: 0.9,
+    photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop',
+    bio: 'Content creator and artist. Music and stories are my language.',
+    interests: ['Art', 'Music', 'Networking'],
+    socialNetworks: { instagram: '@ngozi.e', twitter: '@ngozi_eze' },
+    phone: '+234 XXX XXX 1122',
+    occupation: 'Content Creator',
+    messenger: ['whatsapp', 'telegram', 'imo'],
+  },
+  {
+    id: '9',
+    name: 'Ibrahim Musa',
+    age: 31,
+    gender: 'male',
+    city: 'Lagos',
+    distance: 6.0,
+    photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
+    bio: 'Product manager at a tech company. Love solving problems and meeting people.',
+    interests: ['Tech', 'Business', 'Networking'],
+    socialNetworks: { linkedin: 'ibrahim-musa', twitter: '@ibrahim_m' },
+    phone: '+234 XXX XXX 4455',
+    occupation: 'Product Manager',
+    messenger: ['whatsapp', 'signal', 'telegram'],
+  },
+  {
+    id: '10',
+    name: 'Adaeze Okoli',
+    age: 24,
+    gender: 'female',
+    city: 'Lagos',
+    distance: 4.2,
+    photo: 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=400&h=400&fit=crop',
+    bio: 'Social media manager and travel lover. Always planning the next trip.',
+    interests: ['Fashion', 'Travel', 'Networking'],
+    socialNetworks: { instagram: '@adaeze.o', linkedin: 'adaeze-okoli' },
+    phone: '+234 XXX XXX 9988',
+    occupation: 'Social Media Manager',
+    messenger: ['whatsapp', 'line'],
+  },
+  {
+    id: '11',
+    name: 'Kunle Adebayo',
+    age: 36,
+    gender: 'male',
+    city: 'Lagos',
+    distance: 9.3,
+    photo: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop',
+    bio: 'Investment analyst. Finance, strategy, and connecting with professionals.',
+    interests: ['Business', 'Finance', 'Networking'],
+    socialNetworks: { linkedin: 'kunle-adebayo', twitter: '@kunle_a' },
+    phone: '+234 XXX XXX 3344',
+    occupation: 'Investment Analyst',
+    messenger: ['whatsapp', 'signal'],
+  },
+  {
+    id: '12',
+    name: 'Blessing Akpan',
+    age: 23,
+    gender: 'female',
+    city: 'Lagos',
+    distance: 2.1,
+    photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop',
+    bio: 'Junior developer learning and growing. Always happy to connect.',
+    interests: ['Tech', 'Networking', 'Education'],
+    socialNetworks: { linkedin: 'blessing-akpan', instagram: '@blessing.a' },
+    phone: '+234 XXX XXX 5566',
+    occupation: 'Junior Developer',
+    messenger: ['whatsapp', 'telegram', 'imo'],
+  },
+];

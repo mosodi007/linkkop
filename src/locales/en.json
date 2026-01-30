@@ -1,0 +1,13 @@
+{
+  "landing": {
+    "tagline": "Meet new contacts in your area. Connect with people nearby based on location and shared interests.",
+    "getStarted": "Get started",
+    "signIn": "Sign in",
+    "language": "Language"
+  },
+  "languages": {
+    "en": "English",
+    "es": "Español",
+    "fr": "Français"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "landing": {
+    "tagline": "Faites de nouvelles rencontres près de chez vous. Connectez-vous avec des personnes à proximité selon la localisation et les centres d'intérêt partagés.",
+    "getStarted": "Commencer",
+    "signIn": "Se connecter",
+    "language": "Langue"
+  },
+  "languages": {
+    "en": "English",
+    "es": "Español",
+    "fr": "Français"
+  }
+}
