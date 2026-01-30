@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": ["esnext"],
+    "jsx": "react-native",
+    "strict": true,
+    "moduleResolution": "bundler",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "extends": "expo/tsconfig.base",
+  "include": ["app/**/*.ts", "app/**/*.tsx", "components/**/*.ts", "components/**/*.tsx", "src/app/lib/*.native.ts", "src/app/lib/*.native.tsx", "src/app/types/**/*.ts", "src/locales/**/*.json", ".expo/types/**/*.ts", "expo-env.d.ts", "nativewind-env.d.ts"],
+  "exclude": ["node_modules", "src/app/components-web-backup", "web-backup", "src/main.tsx", "src/app/lib/auth.tsx", "src/app/lib/supabase.ts", "src/app/lib/i18n.ts", "src/app/lib/feed.ts", "src/app/lib/discover.ts", "src/app/lib/contacts.ts", "src/app/lib/notifications.ts", "src/app/data", "src/styles"]
+}

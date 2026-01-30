@@ -1,0 +1,2 @@
+Placeholder for web favicon (48x48 PNG)
+Replace this with your actual favicon.
