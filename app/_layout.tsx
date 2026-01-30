@@ -28,12 +28,17 @@ function RootLayoutNav() {
     SplashScreen.hideAsync();
   }, [user, loading, segments]);
 
+  if (loading) {
+    return null;
+  }
+
   return (
     <>
       <StatusBar style="auto" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="auth" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="+not-found" />
       </Stack>
     </>
   );
