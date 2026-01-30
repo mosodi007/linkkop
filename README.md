@@ -1,6 +1,4 @@
-# Friend Finder App
 
-This is a code bundle for Friend Finder App. The original project is available at https://www.figma.com/design/hgTl8LyWQcTfaIMtS7XIyp/Friend-Finder-App.
 
 ## Running the code
 
