@@ -1,9 +1,46 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/app/lib/supabase';
-import type { DiscoverProfileRow, DiscoverPostRow } from '@/app/types/database';
-import type { User } from '@/app/data/mockUsers';
-import { mockUsers } from '@/app/data/mockUsers';
-import type { Post } from '@/app/data/mockPosts';
+import { supabase } from './supabase';
+import type { DiscoverProfileRow, DiscoverPostRow } from '../types/database';
+
+export interface User {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  city: string;
+  distance: number;
+  photo: string;
+  bio: string;
+  interests: string[];
+  socialNetworks?: {
+    linkedin?: string;
+    twitter?: string;
+    instagram?: string;
+    facebook?: string;
+  };
+  phone?: string;
+  occupation?: string;
+  messenger?: string[];
+}
+
+export interface Post {
+  id: string;
+  authorId: string;
+  author: {
+    id: string;
+    name: string;
+    photo: string;
+    occupation: string;
+    city: string;
+  };
+  content: string;
+  image?: string;
+  location: string;
+  city: string;
+  createdAt: string;
+  likes: number;
+  comments: number;
+}
 
 function ageFromDateOfBirth(dateOfBirth: string | null): number {
   if (!dateOfBirth) return 25;
@@ -48,15 +85,10 @@ export function useDiscoverProfiles(): {
   error: Error | null;
 } {
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(!!supabase);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!supabase) {
-      setUsers(mockUsers);
-      setLoading(false);
-      return;
-    }
     let cancelled = false;
     (async () => {
       const { data, error: e } = await supabase
@@ -66,7 +98,7 @@ export function useDiscoverProfiles(): {
       if (cancelled) return;
       if (e) {
         setError(e as Error);
-        setUsers(mockUsers);
+        setUsers([]);
       } else {
         setUsers((data ?? []).map(mapDiscoverProfileToUser));
       }
@@ -83,9 +115,6 @@ export function useDiscoverProfiles(): {
 export async function fetchDiscoverProfileById(
   id: string
 ): Promise<User | null> {
-  if (!supabase) {
-    return mockUsers.find((u) => u.id === id) ?? null;
-  }
   const { data, error } = await supabase
     .from('profiles_discover')
     .select('*')
@@ -103,7 +132,7 @@ function mapDiscoverPostToPost(row: DiscoverPostRow, author: User): Post {
       id: author.id,
       name: author.name,
       photo: author.photo,
-      occupation: author.occupation,
+      occupation: author.occupation || 'Member',
       city: author.city,
     },
     content: row.content,
@@ -120,12 +149,6 @@ export async function fetchDiscoverPostsByAuthorId(
   authorId: string,
   author: User
 ): Promise<Post[]> {
-  if (!supabase) {
-    const mockPostList = (await import('@/app/data/mockPosts')).mockPosts;
-    return mockPostList
-      .filter((p) => p.authorId === authorId)
-      .map((p) => ({ ...p, author: { id: author.id, name: author.name, photo: author.photo, occupation: author.occupation, city: author.city } }));
-  }
   const { data, error } = await supabase
     .from('posts_discover')
     .select('*')

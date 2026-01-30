@@ -1,41 +1,22 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, RefreshControl, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MessageCircle, X } from 'lucide-react-native';
-import { supabase } from '../../src/app/lib/supabase.native';
-import { useAuth } from '../../src/app/lib/auth.native';
-import { useTranslation } from 'react-i18next';
+import { fetchMyContacts, removeContact, type ContactProfile } from '../../lib/contacts';
+import { useAuth } from '../../lib/auth';
 
 export default function ContactsScreen() {
-  const [contacts, setContacts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<ContactProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useAuth();
-  const { t } = useTranslation();
 
-  async function fetchContacts() {
-    if (!user) return;
-
+  async function loadContacts() {
     try {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select(`
-          id,
-          contact:profiles!contacts_contact_id_fkey(
-            id,
-            full_name,
-            avatar_url,
-            bio,
-            city
-          )
-        `)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-      setContacts(data?.map(c => ({ ...c.contact, contactId: c.id })) || []);
+      const data = await fetchMyContacts();
+      setContacts(data);
     } catch (error) {
       console.error('Error fetching contacts:', error);
-      Alert.alert('Error', 'Failed to load contacts');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -43,12 +24,14 @@ export default function ContactsScreen() {
   }
 
   useEffect(() => {
-    fetchContacts();
+    if (user) {
+      loadContacts();
+    }
   }, [user]);
 
   async function onRefresh() {
     setRefreshing(true);
-    await fetchContacts();
+    await loadContacts();
   }
 
   async function handleRemoveContact(contactId: string) {
@@ -61,16 +44,11 @@ export default function ContactsScreen() {
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('contacts')
-                .delete()
-                .eq('id', contactId);
-
-              if (error) throw error;
-              await fetchContacts();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to remove contact');
+            const success = await removeContact(contactId);
+            if (success) {
+              await loadContacts();
+            } else {
+              Alert.alert('Error', 'Failed to remove contact');
             }
           }
         }
@@ -78,13 +56,36 @@ export default function ContactsScreen() {
     );
   }
 
+  function renderContact({ item }: { item: ContactProfile }) {
+    return (
+      <View style={styles.contactCard}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {item.name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <View style={styles.contactInfo}>
+          <Text style={styles.contactName}>{item.name}</Text>
+          {item.city && <Text style={styles.contactCity}>{item.city}</Text>}
+        </View>
+        <TouchableOpacity style={styles.iconButton}>
+          <MessageCircle size={20} color="#0ea5e9" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => handleRemoveContact(item.id)}
+        >
+          <X size={20} color="#ef4444" />
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
-      <View className="bg-white border-b border-gray-200 px-4 py-3">
-        <Text className="text-2xl font-bold text-gray-900">
-          {t('nav.contacts', 'Contacts')}
-        </Text>
-        <Text className="text-sm text-gray-500 mt-1">
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Contacts</Text>
+        <Text style={styles.headerSubtitle}>
           {contacts.length} {contacts.length === 1 ? 'contact' : 'contacts'}
         </Text>
       </View>
@@ -92,40 +93,16 @@ export default function ContactsScreen() {
       <FlatList
         data={contacts}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View className="bg-white border-b border-gray-100 px-4 py-4 flex-row items-center">
-            <Image
-              source={{ uri: item.avatar_url || 'https://via.placeholder.com/50' }}
-              className="w-12 h-12 rounded-full"
-            />
-            <View className="flex-1 ml-3">
-              <Text className="font-semibold text-gray-900">{item.full_name}</Text>
-              {item.city && (
-                <Text className="text-sm text-gray-500 mt-1">{item.city}</Text>
-              )}
-            </View>
-            <TouchableOpacity className="p-2 mr-2">
-              <MessageCircle size={20} color="#0ea5e9" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="p-2"
-              onPress={() => handleRemoveContact(item.contactId)}
-            >
-              <X size={20} color="#ef4444" />
-            </TouchableOpacity>
-          </View>
-        )}
+        renderItem={renderContact}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListEmptyComponent={
           !loading ? (
-            <View className="items-center justify-center py-20">
-              <Text className="text-gray-500 text-center">
-                {t('contacts.no_contacts', 'No contacts yet')}
-              </Text>
-              <Text className="text-gray-400 text-center mt-2">
-                {t('contacts.discover_hint', 'Discover people and send connection requests!')}
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No contacts yet</Text>
+              <Text style={styles.emptyHint}>
+                Discover people and send connection requests!
               </Text>
             </View>
           ) : null
@@ -134,3 +111,83 @@ export default function ContactsScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  header: {
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  contactCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#0ea5e9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  contactInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  contactName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  contactCity: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  iconButton: {
+    padding: 8,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 32,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  emptyHint: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+});

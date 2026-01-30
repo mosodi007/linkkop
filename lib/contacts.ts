@@ -1,5 +1,4 @@
-import { supabase } from '@/app/lib/supabase';
-import { mockUsers } from '@/app/data/mockUsers';
+import { supabase } from './supabase';
 
 export interface ContactProfile {
   id: string;
@@ -9,17 +8,6 @@ export interface ContactProfile {
 }
 
 export async function fetchMyContacts(): Promise<ContactProfile[]> {
-  if (!supabase) {
-    const contactIds = ['1', '2', '3'];
-    return mockUsers
-      .filter((u) => contactIds.includes(u.id))
-      .map((u) => ({
-        id: u.id,
-        name: u.name,
-        photo: u.photo,
-        city: u.city,
-      }));
-  }
   const { data: session } = await supabase.auth.getSession();
   const userId = session?.data?.session?.user?.id;
   if (!userId) return [];
@@ -55,7 +43,6 @@ export async function fetchMyContacts(): Promise<ContactProfile[]> {
 }
 
 export async function removeContact(contactId: string): Promise<boolean> {
-  if (!supabase) return false;
   const { data: session } = await supabase.auth.getSession();
   const userId = session?.data?.session?.user?.id;
   if (!userId) return false;

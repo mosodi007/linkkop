@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { useAuth } from '../../src/app/lib/auth.native';
-import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../lib/auth';
 
 export default function SignUpScreen() {
   const [email, setEmail] = useState('');
@@ -10,11 +9,10 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
-  const { t } = useTranslation();
   const router = useRouter();
 
   async function handleSignUp() {
-    if (!email || !password) {
+    if (!email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -49,80 +47,69 @@ export default function SignUpScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1"
+      style={styles.container}
     >
-      <ScrollView className="flex-1 bg-white">
-        <View className="flex-1 px-6 pt-20">
-          <Text className="text-4xl font-bold text-gray-900 mb-2">
-            {t('auth.create_account', 'Create account')}
-          </Text>
-          <Text className="text-lg text-gray-600 mb-8">
-            {t('auth.sign_up_subtitle', 'Get started with Linkkop')}
-          </Text>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Create account</Text>
+          <Text style={styles.subtitle}>Get started with Linkkop</Text>
 
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 mb-2">
-              {t('auth.email', 'Email')}
-            </Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
             <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+              style={styles.input}
               placeholder="you@example.com"
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
               autoCorrect={false}
+              placeholderTextColor="#9ca3af"
             />
           </View>
 
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 mb-2">
-              {t('auth.password', 'Password')}
-            </Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Password</Text>
             <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+              style={styles.input}
               placeholder="••••••••"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
+              placeholderTextColor="#9ca3af"
             />
           </View>
 
-          <View className="mb-6">
-            <Text className="text-sm font-medium text-gray-700 mb-2">
-              {t('auth.confirm_password', 'Confirm Password')}
-            </Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Confirm Password</Text>
             <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+              style={styles.input}
               placeholder="••••••••"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
+              placeholderTextColor="#9ca3af"
             />
           </View>
 
           <TouchableOpacity
-            className={`rounded-lg py-4 mb-4 ${loading ? 'bg-blue-300' : 'bg-blue-500'}`}
+            style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleSignUp}
             disabled={loading}
           >
-            <Text className="text-white text-center font-semibold text-base">
-              {loading ? t('auth.creating_account', 'Creating account...') : t('auth.sign_up', 'Sign Up')}
+            <Text style={styles.buttonText}>
+              {loading ? 'Creating account...' : 'Sign Up'}
             </Text>
           </TouchableOpacity>
 
-          <View className="flex-row justify-center mt-6">
-            <Text className="text-gray-600">
-              {t('auth.have_account', 'Already have an account?')}
-            </Text>
-            <Link href="/auth/sign-in" className="ml-1">
-              <Text className="text-blue-500 font-semibold">
-                {t('auth.sign_in', 'Sign in')}
-              </Text>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Already have an account?</Text>
+            <Link href="/auth/sign-in" style={styles.link}>
+              <Text style={styles.linkText}>Sign in</Text>
             </Link>
           </View>
         </View>
@@ -130,3 +117,83 @@ export default function SignUpScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 80,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#6b7280',
+    marginBottom: 32,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#111827',
+  },
+  button: {
+    backgroundColor: '#0ea5e9',
+    borderRadius: 8,
+    paddingVertical: 16,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  buttonDisabled: {
+    backgroundColor: '#93c5fd',
+  },
+  buttonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  footerText: {
+    color: '#6b7280',
+    fontSize: 14,
+  },
+  link: {
+    marginLeft: 4,
+  },
+  linkText: {
+    color: '#0ea5e9',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});

@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { Slot, Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { AuthProvider, useAuth } from '../src/app/lib/auth.native';
+import { AuthProvider, useAuth } from '../lib/auth';
 import * as SplashScreen from 'expo-splash-screen';
-import '../src/app/lib/i18n.native';
+import '../lib/i18n';
 import '../global.css';
 
 SplashScreen.preventAutoHideAsync();

@@ -1,14 +1,12 @@
-import { View, Text, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Settings, Bell, Lock, HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
-import { useAuth } from '../../src/app/lib/auth.native';
+import { User, Bell, Lock, HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
+import { useAuth } from '../../lib/auth';
 import { useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
 
 export default function ProfileScreen() {
   const { user, profile, signOut } = useAuth();
   const router = useRouter();
-  const { t } = useTranslation();
 
   async function handleSignOut() {
     Alert.alert(
@@ -31,81 +29,179 @@ export default function ProfileScreen() {
   const menuItems = [
     {
       icon: User,
-      label: t('settings.profile', 'Edit Profile'),
+      label: 'Edit Profile',
       onPress: () => Alert.alert('Coming soon', 'Profile editing will be available soon'),
     },
     {
       icon: Bell,
-      label: t('settings.notifications', 'Notifications'),
+      label: 'Notifications',
       onPress: () => Alert.alert('Coming soon', 'Notification settings will be available soon'),
     },
     {
       icon: Lock,
-      label: t('settings.privacy', 'Privacy'),
+      label: 'Privacy',
       onPress: () => Alert.alert('Coming soon', 'Privacy settings will be available soon'),
     },
     {
       icon: HelpCircle,
-      label: t('settings.help', 'Help & Feedback'),
+      label: 'Help & Feedback',
       onPress: () => Alert.alert('Coming soon', 'Help & feedback will be available soon'),
     },
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
-      <View className="bg-white border-b border-gray-200 px-4 py-3">
-        <Text className="text-2xl font-bold text-gray-900">
-          {t('nav.profile', 'Profile')}
-        </Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Profile</Text>
       </View>
 
       <ScrollView>
-        <View className="bg-white px-4 py-6 mb-2">
-          <View className="items-center">
-            <Image
-              source={{ uri: profile?.avatar_url || 'https://via.placeholder.com/100' }}
-              className="w-24 h-24 rounded-full"
-            />
-            <Text className="text-xl font-bold text-gray-900 mt-4">
+        <View style={styles.profileSection}>
+          <View style={styles.profileContent}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
+              </Text>
+            </View>
+            <Text style={styles.profileName}>
               {profile?.full_name || 'User'}
             </Text>
-            <Text className="text-sm text-gray-500 mt-1">{user?.email}</Text>
+            <Text style={styles.profileEmail}>{user?.email}</Text>
             {profile?.city && (
-              <Text className="text-sm text-gray-500 mt-1">{profile.city}</Text>
+              <Text style={styles.profileCity}>{profile.city}</Text>
             )}
           </View>
         </View>
 
-        <View className="bg-white mt-2">
+        <View style={styles.menuSection}>
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
-              className="flex-row items-center px-4 py-4 border-b border-gray-100"
+              style={[
+                styles.menuItem,
+                index < menuItems.length - 1 && styles.menuItemBorder
+              ]}
               onPress={item.onPress}
             >
               <item.icon size={20} color="#6b7280" />
-              <Text className="flex-1 ml-3 text-gray-900">{item.label}</Text>
+              <Text style={styles.menuLabel}>{item.label}</Text>
               <ChevronRight size={20} color="#9ca3af" />
             </TouchableOpacity>
           ))}
         </View>
 
         <TouchableOpacity
-          className="bg-white mt-2 flex-row items-center px-4 py-4"
+          style={styles.signOutButton}
           onPress={handleSignOut}
         >
           <LogOut size={20} color="#ef4444" />
-          <Text className="ml-3 text-red-500 font-semibold">
-            {t('settings.sign_out', 'Sign Out')}
-          </Text>
+          <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
 
-        <View className="px-4 py-6">
-          <Text className="text-center text-xs text-gray-400">
-            Linkkop v1.0.0
-          </Text>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Linkkop v1.0.0</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  header: {
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  profileSection: {
+    backgroundColor: 'white',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  profileContent: {
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#0ea5e9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: 'white',
+    fontSize: 40,
+    fontWeight: '600',
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginTop: 16,
+  },
+  profileEmail: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  profileCity: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  menuSection: {
+    backgroundColor: 'white',
+    marginTop: 8,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  menuItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  menuLabel: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#111827',
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    marginTop: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  signOutText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#ef4444',
+    fontWeight: '600',
+  },
+  footer: {
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  footerText: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+});

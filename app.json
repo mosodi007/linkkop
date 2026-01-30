@@ -65,7 +65,9 @@
       },
       "eas": {
         "projectId": "your-project-id"
-      }
+      },
+      "supabaseUrl": "https://ighhpkfnpcenzelrhskq.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnaGhwa2ZucGNlbnplbHJoc2txIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2OTU5NjMsImV4cCI6MjA4NTI3MTk2M30.-dfVnE2E9rTc2Y8_3KYXvaIHxEHd4wwWEJhh6qKL2dk"
     }
   }
 }

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/app/lib/supabase';
-import type { ProfileRow } from '@/app/types/database';
+import { supabase } from './supabase';
+import type { ProfileRow } from '../types/database';
 
 interface AuthState {
   user: User | null;
@@ -24,21 +24,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   async function fetchProfile(userId: string) {
-    if (!supabase) return;
     const { data } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     setProfile(data as ProfileRow | null);
   }
 
   useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
-
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
@@ -46,50 +40,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user?.id) void fetchProfile(s.user.id);
-      else setProfile(null);
+      if (s?.user?.id) {
+        await fetchProfile(s.user.id);
+      } else {
+        setProfile(null);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signInWithEmail = async (email: string) => {
-    if (!supabase) return { error: new Error('Supabase not configured') };
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
-      },
     });
     return { error: error ?? null };
   };
 
   const signInWithPassword = async (email: string, password: string) => {
-    if (!supabase) return { error: new Error('Supabase not configured') };
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error ?? null };
   };
 
   const signUp = async (email: string, password: string) => {
-    if (!supabase) return { error: new Error('Supabase not configured') };
     const { error } = await supabase.auth.signUp({ email, password });
     return { error: error ?? null };
   };
 
   const signOut = async () => {
-    if (supabase) await supabase.auth.signOut();
+    await supabase.auth.signOut();
     setProfile(null);
   };
 
   const updateProfile = async (updates: Partial<ProfileRow>) => {
-    if (!supabase || !user?.id) return { error: new Error('Not authenticated') };
+    if (!user?.id) return { error: new Error('Not authenticated') };
     const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
-    if (!error) void fetchProfile(user.id);
+    if (!error) await fetchProfile(user.id);
     return { error: error ?? null };
   };
 
@@ -109,7 +100,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (ctx === undefined) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

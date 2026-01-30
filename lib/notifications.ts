@@ -1,5 +1,5 @@
-import { supabase } from '@/app/lib/supabase';
-import type { NotificationRow } from '@/app/types/database';
+import { supabase } from './supabase';
+import type { NotificationRow } from '../types/database';
 
 export interface NotificationItem {
   id: string;
@@ -26,17 +26,7 @@ function formatTimeAgo(dateStr: string): string {
   return date.toLocaleDateString();
 }
 
-const MOCK_NOTIFICATIONS: NotificationItem[] = [
-  { id: '1', type: 'connection', title: 'Connection accepted', body: 'Amina Okonkwo accepted your connection request', readAt: null, createdAt: new Date(Date.now() - 120000).toISOString(), timeAgo: '2m ago' },
-  { id: '2', type: 'comment', title: 'New comment', body: 'Chukwudi Eze commented on your post', readAt: null, createdAt: new Date(Date.now() - 3600000).toISOString(), timeAgo: '1h ago' },
-  { id: '3', type: 'like', title: 'Like', body: 'Funmi Adeyemi liked your post', readAt: null, createdAt: new Date(Date.now() - 10800000).toISOString(), timeAgo: '3h ago' },
-  { id: '4', type: 'connection', title: 'Connection request', body: 'Zainab Ibrahim wants to connect', readAt: null, createdAt: new Date(Date.now() - 86400000).toISOString(), timeAgo: 'Yesterday' },
-];
-
 export async function fetchMyNotifications(): Promise<NotificationItem[]> {
-  if (!supabase) {
-    return MOCK_NOTIFICATIONS.map((n) => ({ ...n, timeAgo: formatTimeAgo(n.createdAt) }));
-  }
   const { data: session } = await supabase.auth.getSession();
   const userId = session?.data?.session?.user?.id;
   if (!userId) return [];
@@ -63,7 +53,6 @@ export async function fetchMyNotifications(): Promise<NotificationItem[]> {
 }
 
 export async function markNotificationRead(id: string): Promise<boolean> {
-  if (!supabase) return false;
   const { data: session } = await supabase.auth.getSession();
   const userId = session?.data?.session?.user?.id;
   if (!userId) return false;
