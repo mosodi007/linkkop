@@ -44,6 +44,7 @@
     "react-native-svg": "15.8.0",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.21.2",
+    "react-refresh": "^0.18.0",
     "resolve-from": "^5.0.0"
   },
   "devDependencies": {
