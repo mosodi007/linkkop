@@ -7,8 +7,8 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// pnpm uses symlinks; Metro must watch the monorepo root and resolve symlinks
-config.watchFolders = [monorepoRoot];
+// pnpm uses symlinks; Metro must watch the monorepo root and resolve symlinks (merge with Expo defaults)
+config.watchFolders = [...(config.watchFolders || []), monorepoRoot];
 config.resolver.resolveRequest = MetroSymlinksResolver();
 
 config.transformer = {

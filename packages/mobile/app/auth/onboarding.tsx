@@ -21,7 +21,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 import * as Location from 'expo-location';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { themeColors } from '../../lib/ThemeContext';
@@ -109,6 +108,7 @@ export default function OnboardingScreen() {
   const [messenger, setMessenger] = useState<string[]>([]);
   const [socialNetworks, setSocialNetworks] = useState<OnboardingSocialNetworks>(defaultSocial);
   const [profilePhotoUri, setProfilePhotoUri] = useState<string | null>(null);
+  const [profilePhotoBase64, setProfilePhotoBase64] = useState<string | null>(null);
   const [bio, setBio] = useState('');
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | undefined>(undefined);
@@ -192,21 +192,58 @@ export default function OnboardingScreen() {
     }
   }
 
-  async function pickImage() {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow access to your photos to add a profile photo.');
-      return;
+  const pickerOptions = {
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [1, 1] as [number, number],
+    quality: 0.8,
+    base64: true,
+  };
+
+  async function pickImageFromLibrary() {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Allow access to your photos to add a profile photo.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        setProfilePhotoUri(asset.uri);
+        setProfilePhotoBase64(asset.base64 ?? null);
+      }
+    } catch (err) {
+      console.warn('Image picker (library) error', err);
+      Alert.alert('Error', 'Could not open the photo library. Please try again.');
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setProfilePhotoUri(result.assets[0].uri);
+  }
+
+  async function pickImageFromCamera() {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Allow camera access to take a profile photo.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync(pickerOptions);
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        setProfilePhotoUri(asset.uri);
+        setProfilePhotoBase64(asset.base64 ?? null);
+      }
+    } catch (err) {
+      console.warn('Image picker (camera) error', err);
+      Alert.alert('Error', 'Could not open the camera. Please try again.');
     }
+  }
+
+  function pickImage() {
+    Alert.alert('Profile photo', 'Choose a source', [
+      { text: 'Take Photo', onPress: pickImageFromCamera },
+      { text: 'Choose from Library', onPress: pickImageFromLibrary },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   }
 
   async function handleLocationToggle(value: boolean) {
@@ -281,15 +318,11 @@ export default function OnboardingScreen() {
         }
 
         let avatarUrl: string | null = null;
-        if (profilePhotoUri) {
+        if (profilePhotoBase64) {
           try {
-            const ext = (profilePhotoUri.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z]/g, '') || 'jpg';
-            const path = `${user.id}/avatar.${ext === 'png' ? 'png' : 'jpg'}`;
-            const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
-            const base64 = await FileSystem.readAsStringAsync(profilePhotoUri, {
-              encoding: 'base64',
-            });
-            const binaryString = base64ToBinary(base64);
+            const path = `${user.id}/avatar.jpg`;
+            const contentType = 'image/jpeg';
+            const binaryString = base64ToBinary(profilePhotoBase64);
             const bytes = new Uint8Array(binaryString.length);
             for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
             const { error: uploadError } = await supabase.storage
@@ -326,7 +359,8 @@ export default function OnboardingScreen() {
           Alert.alert('Error', profileError.message);
           return;
         }
-        await refreshProfile();
+        // Fetch profile (including avatar_url) for the new user so the app shows it right away
+        await refreshProfile(user.id);
         setLoading(false);
         setTimeout(() => router.replace('/(tabs)'), 0);
         return;

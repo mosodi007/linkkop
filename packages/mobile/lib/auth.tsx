@@ -13,7 +13,7 @@ interface AuthState {
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<ProfileRow>) => Promise<{ error: Error | null }>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: (userId?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -99,8 +99,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ?? null };
   };
 
-  const refreshProfile = useCallback(async () => {
-    if (user?.id) await fetchProfile(user.id);
+  const refreshProfile = useCallback(async (userId?: string) => {
+    const id = userId ?? user?.id;
+    if (id) await fetchProfile(id);
   }, [user?.id]);
 
   const value: AuthState = {
