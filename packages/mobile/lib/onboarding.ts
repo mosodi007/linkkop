@@ -20,6 +20,7 @@ export interface OnboardingPayload {
   bio: string;
   locationEnabled: boolean;
   coords?: { lat: number; lng: number };
+  city?: string | null; // from reverse geocode when location enabled
 }
 
 export const ONBOARDING_STORAGE_KEY = 'onboarding_data';

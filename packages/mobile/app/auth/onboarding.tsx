@@ -1,10 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
+  FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -15,12 +17,14 @@ import {
   Switch,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { themeColors } from '../../lib/ThemeContext';
+import { COUNTRY_OPTIONS, getFlagEmoji } from '../../lib/countries';
 import {
   type OnboardingPayload,
   type OnboardingSocialNetworks,
@@ -52,17 +56,6 @@ const MESSENGER_OPTIONS = [
   { value: 'imo', label: 'IMO' },
 ] as const;
 
-const COUNTRY_OPTIONS = [
-  { value: 'NG', dialCode: '+234', label: 'Nigeria' },
-  { value: 'US', dialCode: '+1', label: 'United States' },
-  { value: 'GB', dialCode: '+44', label: 'United Kingdom' },
-  { value: 'KE', dialCode: '+254', label: 'Kenya' },
-  { value: 'GH', dialCode: '+233', label: 'Ghana' },
-  { value: 'ZA', dialCode: '+27', label: 'South Africa' },
-  { value: 'CA', dialCode: '+1', label: 'Canada' },
-  { value: 'IN', dialCode: '+91', label: 'India' },
-];
-
 const STEPS = [
   { title: 'Account', fields: ['email', 'password', 'confirmPassword'] },
   { title: 'Basics', fields: ['fullName', 'dateOfBirth', 'interests'] },
@@ -80,6 +73,8 @@ export default function OnboardingScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [countryModalVisible, setCountryModalVisible] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -97,10 +92,27 @@ export default function OnboardingScreen() {
   const [bio, setBio] = useState('');
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | undefined>(undefined);
+  const [city, setCity] = useState<string | null>(null);
 
   const currentStep = STEPS[step];
   const isLastStep = step === STEPS.length - 1;
-  const dialCode = COUNTRY_OPTIONS.find((c) => c.value === countryCode)?.dialCode ?? '+234';
+  const selectedCountry = useMemo(
+    () => COUNTRY_OPTIONS.find((c) => c.value === countryCode),
+    [countryCode]
+  );
+  const dialCode = selectedCountry?.dialCode ?? '+234';
+
+  const filteredCountries = useMemo(() => {
+    if (!countrySearch.trim()) return COUNTRY_OPTIONS;
+    const q = countrySearch.trim().toLowerCase();
+    return COUNTRY_OPTIONS.filter(
+      (o) =>
+        o.label.toLowerCase().includes(q) ||
+        o.dialCode.toLowerCase().includes(q) ||
+        o.dialCode.replace(/\D/g, '').includes(q.replace(/\D/g, ''))
+    );
+  }, [countrySearch]);
+  const insets = useSafeAreaInsets();
 
   function validateStep(): boolean {
     const nextErrors: Record<string, string> = {};
@@ -139,6 +151,27 @@ export default function OnboardingScreen() {
     );
   }
 
+  const datePickerValue = dateOfBirth.trim()
+    ? (() => {
+        const d = new Date(dateOfBirth);
+        return isNaN(d.getTime()) ? new Date(Date.now() - 25 * 365.25 * 24 * 60 * 60 * 1000) : d;
+      })()
+    : new Date(Date.now() - 25 * 365.25 * 24 * 60 * 60 * 1000);
+
+  const formattedDateOfBirth = dateOfBirth.trim()
+    ? (() => {
+        const d = new Date(dateOfBirth);
+        return isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+      })()
+    : '';
+
+  function onDatePickerChange(event: DateTimePickerEvent, selectedDate: Date | undefined) {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (event.type === 'set' && selectedDate) {
+      setDateOfBirth(selectedDate.toISOString().slice(0, 10));
+    }
+  }
+
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -167,16 +200,28 @@ export default function OnboardingScreen() {
       }
       try {
         const loc = await Location.getCurrentPositionAsync({});
-        setCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+        const lat = loc.coords.latitude;
+        const lng = loc.coords.longitude;
+        setCoords({ lat, lng });
+        try {
+          const [address] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+          const cityName = address?.city ?? address?.district ?? address?.subregion ?? address?.region ?? null;
+          setCity(cityName);
+        } catch {
+          setCity(null);
+        }
       } catch {
         setLocationEnabled(false);
+        setCity(null);
       }
     } else {
       setCoords(undefined);
+      setCity(null);
     }
   }
 
   async function handleNext() {
+    Keyboard.dismiss();
     if (!validateStep()) return;
     if (isLastStep) {
       setLoading(true);
@@ -194,6 +239,7 @@ export default function OnboardingScreen() {
         bio: bio.trim(),
         locationEnabled,
         coords,
+        city: locationEnabled ? city : null,
       };
 
       if (supabase) {
@@ -243,7 +289,7 @@ export default function OnboardingScreen() {
           location_enabled: payload.locationEnabled ?? false,
           lat: payload.coords?.lat ?? null,
           lng: payload.coords?.lng ?? null,
-          city: null,
+          city: payload.city?.trim() || null,
         };
         const { error: profileError } = await supabase.from('profiles').upsert(profileRow, { onConflict: 'id' });
         if (profileError) {
@@ -273,31 +319,65 @@ export default function OnboardingScreen() {
     setErrors({});
   }
 
+  const stepTitles: Record<number, { title: string; subtitle: string }> = {
+    0: { title: 'Create your account', subtitle: 'We’ll use this to sign you in and keep your profile secure.' },
+    1: { title: 'About you', subtitle: 'Help others find you with a few basics.' },
+    2: { title: 'How to reach you', subtitle: 'Add your phone and preferred messengers.' },
+    3: { title: 'Social links', subtitle: 'Optional — connect your profiles.' },
+    4: { title: 'Your profile', subtitle: 'A photo and short bio go a long way.' },
+    5: { title: 'Location', subtitle: 'Find people near you.' },
+  };
+  const { title: stepTitle, subtitle: stepSubtitle } = stepTitles[step] ?? { title: '', subtitle: '' };
+  const progressPercent = ((step + 1) / STEPS.length) * 100;
+  const floatingFooterHeight = 52 + 16 + 32 + (insets.bottom + 12);
+  const scrollPaddingBottom = floatingFooterHeight + 24;
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
       >
+        {/* Header with back arrow and logo */}
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            {step > 0 ? (
+              <TouchableOpacity
+                onPress={handleBack}
+                style={styles.headerBackBtn}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                disabled={loading}
+              >
+                <Ionicons name="arrow-back" size={24} color={themeColors.text.primary} />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.headerBackPlaceholder} />
+            )}
+            <Image source={require('../../public/Linkkop.png')} style={styles.logo} resizeMode="contain" />
+            <View style={styles.headerBackPlaceholder} />
+          </View>
+          <View style={styles.progressBarWrap}>
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+            </View>
+            <Text style={styles.stepBadge}>Step {step + 1} of {STEPS.length}</Text>
+          </View>
+        </View>
+
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollPaddingBottom }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          keyboardDismissMode="on-drag"
         >
-          <View style={styles.progressWrap}>
-            {STEPS.map((_, i) => (
-              <View
-                key={i}
-                style={[styles.progressDot, i <= step ? styles.progressDotActive : null]}
-              />
-            ))}
+          <View style={styles.stepHeader}>
+            <Text style={styles.stepTitle}>{stepTitle}</Text>
+            <Text style={styles.stepSubtitle}>{stepSubtitle}</Text>
           </View>
-          <Text style={styles.stepLabel}>
-            Step {step + 1} of {STEPS.length}
-          </Text>
 
+          <View style={styles.formCard}>
           {/* Step 0: Account */}
           {step === 0 && (
             <View style={styles.form}>
@@ -371,15 +451,39 @@ export default function OnboardingScreen() {
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Date of birth</Text>
-                <TextInput
-                  style={[styles.input, errors.dateOfBirth ? styles.inputError : null]}
-                  placeholder="YYYY-MM-DD (e.g. 1990-01-15)"
-                  placeholderTextColor={themeColors.text.muted}
-                  value={dateOfBirth}
-                  onChangeText={setDateOfBirth}
-                  editable={!loading}
-                />
+                <TouchableOpacity
+                  style={[styles.input, styles.dateInputTouchable, errors.dateOfBirth ? styles.inputError : null]}
+                  onPress={() => !loading && setShowDatePicker(true)}
+                  activeOpacity={0.7}
+                  disabled={loading}
+                >
+                  <Text style={formattedDateOfBirth ? styles.dateInputText : styles.dateInputPlaceholder}>
+                    {formattedDateOfBirth || 'Select date of birth'}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={22} color={themeColors.text.muted} />
+                </TouchableOpacity>
                 {errors.dateOfBirth ? <Text style={styles.errorText}>{errors.dateOfBirth}</Text> : null}
+                {showDatePicker && (
+                  <>
+                    <DateTimePicker
+                      value={datePickerValue}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={onDatePickerChange}
+                      maximumDate={new Date()}
+                      minimumDate={new Date(1900, 0, 1)}
+                    />
+                    {Platform.OS === 'ios' && (
+                      <TouchableOpacity
+                        style={styles.datePickerDoneBtn}
+                        onPress={() => setShowDatePicker(false)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.datePickerDoneBtnText}>Done</Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Interests</Text>
@@ -408,9 +512,19 @@ export default function OnboardingScreen() {
                 <View style={styles.phoneRow}>
                   <TouchableOpacity
                     style={styles.countryBtn}
-                    onPress={() => setCountryModalVisible(true)}
+                    onPress={() => {
+                      setCountrySearch('');
+                      setCountryModalVisible(true);
+                    }}
                   >
-                    <Text style={styles.countryBtnText}>{dialCode}</Text>
+                    {selectedCountry ? (
+                      <>
+                        <Text style={styles.countryFlag}>{getFlagEmoji(selectedCountry.iso2)}</Text>
+                        <Text style={styles.countryBtnText}>{dialCode}</Text>
+                      </>
+                    ) : (
+                      <Text style={styles.countryBtnText}>{dialCode}</Text>
+                    )}
                     <Ionicons name="chevron-down" size={18} color={themeColors.text.secondary} />
                   </TouchableOpacity>
                   <TextInput
@@ -518,57 +632,93 @@ export default function OnboardingScreen() {
             </View>
           )}
 
-          <View style={styles.buttons}>
-            <TouchableOpacity
-              style={[styles.btn, styles.btnSecondary]}
-              onPress={handleBack}
-              disabled={step === 0 || loading}
-            >
-              <Text style={styles.btnSecondaryText}>Back</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.btn, styles.btnPrimary, loading && styles.btnDisabled]}
-              onPress={handleNext}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.btnPrimaryText}>{isLastStep ? 'Complete' : 'Next'}</Text>
-              )}
-            </TouchableOpacity>
           </View>
         </ScrollView>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account? </Text>
-          <Link href="/auth/sign-in" asChild>
-            <TouchableOpacity>
-              <Text style={styles.footerLink}>Sign in</Text>
-            </TouchableOpacity>
-          </Link>
+        {/* Floating Next button - above keyboard via KeyboardAvoidingView */}
+        <View style={[styles.floatingFooter, { paddingBottom: insets.bottom + 12 }]}>
+          <TouchableOpacity
+            style={[styles.btnPrimary, styles.btnSingle, loading && styles.btnDisabled]}
+            onPress={handleNext}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Text style={styles.btnPrimaryText}>{isLastStep ? 'Complete' : 'Next'}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Already have an account? </Text>
+            <Link href="/auth/sign-in" asChild>
+              <TouchableOpacity>
+                <Text style={styles.footerLink}>Sign in</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
         </View>
       </KeyboardAvoidingView>
 
       <Modal visible={countryModalVisible} transparent animationType="slide">
-        <Pressable style={styles.modalOverlay} onPress={() => setCountryModalVisible(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Country</Text>
-            <ScrollView style={styles.modalList}>
-              {COUNTRY_OPTIONS.map((c) => (
-                <TouchableOpacity
-                  key={c.value}
-                  style={styles.modalOption}
-                  onPress={() => {
-                    setCountryCode(c.value);
-                    setCountryModalVisible(false);
-                  }}
-                >
-                  <Text style={styles.modalOptionText}>{c.label} ({c.dialCode})</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </Pressable>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => {
+            setCountryModalVisible(false);
+            setCountrySearch('');
+          }}
+        >
+          <View style={styles.modalContent} pointerEvents="box-none">
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Select country</Text>
+            <Text style={styles.modalSubtitle}>Your phone number will use this dial code.</Text>
+            <View style={styles.modalSearchWrap} pointerEvents="box-none">
+              <Ionicons name="search" size={20} color={themeColors.text.muted} style={styles.modalSearchIcon} pointerEvents="none" />
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Search country or code..."
+                placeholderTextColor={themeColors.text.muted}
+                value={countrySearch}
+                onChangeText={setCountrySearch}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+                returnKeyType="search"
+                clearButtonMode="while-editing"
+              />
+            </View>
+            {filteredCountries.length === 0 ? (
+              <View style={styles.modalEmptyWrap}>
+                <Text style={styles.modalEmptyText}>No countries match your search.</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredCountries}
+                keyExtractor={(c) => c.value}
+                style={styles.modalList}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item: c }) => (
+                  <TouchableOpacity
+                    style={[styles.modalOption, countryCode === c.value && styles.modalOptionActive]}
+                    onPress={() => {
+                      setCountryCode(c.value);
+                      setCountryModalVisible(false);
+                      setCountrySearch('');
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.modalOptionFlag}>{getFlagEmoji(c.iso2)}</Text>
+                    <Text style={styles.modalOptionLabel} numberOfLines={1}>
+                      {c.label.replace(` (${c.dialCode})`, '')}
+                    </Text>
+                    <Text style={styles.modalOptionDial}>{c.dialCode}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
         </Pressable>
       </Modal>
     </SafeAreaView>
@@ -578,132 +728,275 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: themeColors.background.screen },
   container: { flex: 1, backgroundColor: themeColors.background.screen },
-  scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 },
-  progressWrap: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 8,
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 20,
+    backgroundColor: themeColors.background.screen,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border.light,
   },
-  progressDot: {
-    width: 28,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  headerBackBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerBackPlaceholder: {
+    width: 40,
+    height: 40,
+  },
+  logo: {
+    height: 32,
+    width: 90,
+  },
+  progressBarWrap: {
+    marginBottom: 4,
+  },
+  progressBarBg: {
     height: 6,
     borderRadius: 3,
     backgroundColor: themeColors.border.default,
+    overflow: 'hidden',
+    marginBottom: 10,
   },
-  progressDotActive: {
-    backgroundColor: themeColors.secondary,
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: themeColors.primary,
   },
-  stepLabel: {
-    fontSize: 14,
+  stepBadge: {
+    fontSize: 12,
+    fontWeight: '600',
     color: themeColors.text.muted,
     textAlign: 'center',
-    marginBottom: 24,
+    letterSpacing: 0.5,
   },
-  form: { marginBottom: 24 },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 20 },
+  stepHeader: {
+    marginBottom: 20,
+  },
+  stepTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: themeColors.text.primary,
+    marginBottom: 6,
+  },
+  stepSubtitle: {
+    fontSize: 15,
+    color: themeColors.text.secondary,
+    lineHeight: 22,
+  },
+  formCard: {
+    backgroundColor: themeColors.background.card,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: themeColors.secondary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  form: { marginBottom: 0 },
   inputGroup: { marginBottom: 20 },
   label: { fontSize: 14, fontWeight: '600', color: themeColors.text.primary, marginBottom: 8 },
   hint: { fontSize: 13, color: themeColors.text.muted, marginBottom: 8 },
   input: {
     borderWidth: 1,
     borderColor: themeColors.border.default,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 16,
     color: themeColors.text.primary,
-    backgroundColor: themeColors.background.card,
+    backgroundColor: themeColors.background.input,
   },
   inputError: { borderColor: '#dc2626' },
+  dateInputTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateInputText: { fontSize: 16, color: themeColors.text.primary },
+  dateInputPlaceholder: { fontSize: 16, color: themeColors.text.muted },
+  datePickerDoneBtn: {
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: themeColors.primary,
+    alignItems: 'center',
+  },
+  datePickerDoneBtnText: { fontSize: 16, fontWeight: '600', color: themeColors.text.inverse },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: themeColors.border.default,
-    borderRadius: 12,
-    backgroundColor: themeColors.background.card,
-    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: themeColors.background.input,
+    paddingHorizontal: 16,
   },
-  inputFlex: { flex: 1, paddingVertical: 12, fontSize: 16, color: themeColors.text.primary },
+  inputFlex: { flex: 1, paddingVertical: 14, fontSize: 16, color: themeColors.text.primary },
   eyeBtn: { padding: 8 },
   errorText: { fontSize: 12, color: '#dc2626', marginTop: 4 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: themeColors.border.default,
-    backgroundColor: themeColors.background.card,
-    marginRight: 8,
-    marginBottom: 8,
+    backgroundColor: themeColors.background.input,
+    marginRight: 10,
+    marginBottom: 10,
   },
-  chipActive: { backgroundColor: themeColors.secondary, borderColor: themeColors.secondary },
+  chipActive: { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
   chipText: { fontSize: 14, fontWeight: '500', color: themeColors.text.secondary },
   chipTextActive: { color: themeColors.text.inverse },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   countryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    gap: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: themeColors.border.default,
-    backgroundColor: themeColors.background.card,
-    minWidth: 90,
+    backgroundColor: themeColors.background.input,
+    minWidth: 96,
   },
-  countryBtnText: { fontSize: 16, color: themeColors.text.primary, fontWeight: '500' },
-  phoneInput: { flex: 1, borderWidth: 1, borderColor: themeColors.border.default, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: themeColors.text.primary, backgroundColor: themeColors.background.card },
-  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  countryFlag: { fontSize: 18, lineHeight: 20 },
+  countryBtnText: { fontSize: 16, color: themeColors.text.primary, fontWeight: '600' },
+  phoneInput: { flex: 1, borderWidth: 1, borderColor: themeColors.border.default, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: themeColors.text.primary, backgroundColor: themeColors.background.input },
+  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   avatarWrap: { alignSelf: 'flex-start' },
-  avatar: { width: 96, height: 96, borderRadius: 48 },
+  avatar: { width: 100, height: 100, borderRadius: 50 },
   avatarPlaceholder: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: themeColors.background.muted,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: themeColors.border.default,
+    borderStyle: 'dashed',
   },
   addPhotoBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: themeColors.border.default,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: themeColors.primary,
+    backgroundColor: 'transparent',
   },
-  addPhotoBtnText: { fontSize: 15, fontWeight: '500', color: themeColors.text.primary },
-  bioInput: { minHeight: 100, textAlignVertical: 'top' },
-  locationDesc: { fontSize: 14, color: themeColors.text.secondary, marginBottom: 16, lineHeight: 20 },
+  addPhotoBtnText: { fontSize: 15, fontWeight: '600', color: themeColors.primary },
+  bioInput: { minHeight: 110, textAlignVertical: 'top' },
+  locationDesc: { fontSize: 15, color: themeColors.text.secondary, marginBottom: 20, lineHeight: 22 },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: themeColors.border.default,
-    backgroundColor: themeColors.background.card,
+    backgroundColor: themeColors.background.input,
   },
-  switchLabel: { fontSize: 16, color: themeColors.text.primary },
-  buttons: { flexDirection: 'row', gap: 12, marginTop: 8 },
-  btn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', minHeight: 48 },
-  btnSecondary: { borderWidth: 1, borderColor: themeColors.border.default, backgroundColor: themeColors.background.card },
-  btnSecondaryText: { fontSize: 16, fontWeight: '600', color: themeColors.text.secondary },
-  btnPrimary: { backgroundColor: themeColors.secondary },
-  btnPrimaryText: { fontSize: 16, fontWeight: '600', color: themeColors.text.inverse },
+  switchLabel: { fontSize: 16, fontWeight: '500', color: themeColors.text.primary },
+  floatingFooter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    backgroundColor: themeColors.background.screen,
+    borderTopWidth: 1,
+    borderTopColor: themeColors.border.light,
+    shadowColor: themeColors.secondary,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 12,
+    zIndex: 10,
+  },
+  btnSingle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    minHeight: 52,
+    marginBottom: 20,
+  },
+  btnPrimary: { backgroundColor: '#000' },
+  btnPrimaryText: { fontSize: 16, fontWeight: '700', color: themeColors.primary },
   btnDisabled: { opacity: 0.7 },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, paddingHorizontal: 24 },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' },
   footerText: { fontSize: 14, color: themeColors.text.muted },
   footerLink: { fontSize: 14, fontWeight: '600', color: themeColors.primary },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: themeColors.background.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '70%' },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: themeColors.text.primary, marginBottom: 16 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalContent: {
+    backgroundColor: themeColors.background.card,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingTop: 12,
+    maxHeight: '70%',
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: themeColors.border.default,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: themeColors.text.primary, marginBottom: 4 },
+  modalSubtitle: { fontSize: 14, color: themeColors.text.muted, marginBottom: 16 },
+  modalSearchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: themeColors.border.default,
+    backgroundColor: themeColors.background.input,
+  },
+  modalSearchIcon: { marginRight: 10 },
+  modalSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: themeColors.text.primary,
+    paddingVertical: 4,
+  },
+  modalEmptyWrap: { paddingVertical: 32, alignItems: 'center' },
+  modalEmptyText: { fontSize: 15, color: themeColors.text.muted },
   modalList: { maxHeight: 320 },
-  modalOption: { paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: themeColors.border.default },
-  modalOptionText: { fontSize: 16, color: themeColors.text.primary },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: themeColors.border.default,
+  },
+  modalOptionActive: { backgroundColor: themeColors.background.muted ?? 'rgba(0,0,0,0.05)' },
+  modalOptionFlag: { fontSize: 22, lineHeight: 24, marginRight: 12 },
+  modalOptionLabel: { flex: 1, fontSize: 16, color: themeColors.text.primary, marginRight: 8 },
+  modalOptionDial: { fontSize: 15, color: themeColors.text.muted, fontWeight: '600' },
 });

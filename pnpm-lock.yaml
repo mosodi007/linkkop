@@ -26,6 +26,9 @@ importers:
       '@react-native-async-storage/async-storage':
         specifier: 1.23.1
         version: 1.23.1(react-native@0.76.5(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.3.1))
+      '@react-native-community/datetimepicker':
+        specifier: 8.2.0
+        version: 8.2.0(expo@52.0.48(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@expo/metro-runtime@4.0.1(react-native@0.76.5(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.3.1)))(react-native@0.76.5(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.3.1))(react@18.3.1))(react-native@0.76.5(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.3.1))(react@18.3.1)
       '@repo/shared':
         specifier: workspace:*
         version: link:../shared
@@ -78,6 +81,9 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0(react-native@0.76.5(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.3.1))
     devDependencies:
+      '@rnx-kit/metro-resolver-symlinks':
+        specifier: ^0.2.11
+        version: 0.2.11
       babel-preset-expo:
         specifier: ~13.0.0
         version: 13.0.0(@babel/core@7.28.6)
@@ -2177,6 +2183,19 @@ packages:
     peerDependencies:
       react-native: ^0.0.0-0 || >=0.60 <1.0
 
+  '@react-native-community/datetimepicker@8.2.0':
+    resolution: {integrity: sha512-qrUPhiBvKGuG9Y+vOqsc56RPFcHa1SU2qbAMT0hfGkoFIj3FodE0VuPVrEa8fgy7kcD5NQmkZIKgHOBLV0+hWg==}
+    peerDependencies:
+      expo: '>=50.0.0'
+      react: '*'
+      react-native: '*'
+      react-native-windows: '*'
+    peerDependenciesMeta:
+      expo:
+        optional: true
+      react-native-windows:
+        optional: true
+
   '@react-native/assets-registry@0.76.5':
     resolution: {integrity: sha512-MN5dasWo37MirVcKWuysRkRr4BjNc81SXwUtJYstwbn8oEkfnwR9DaqdDTo/hHOnTdhafffLIa2xOOHcjDIGEw==}
     engines: {node: '>=18'}
@@ -2328,6 +2347,27 @@ packages:
 
   '@react-navigation/routers@7.5.3':
     resolution: {integrity: sha512-1tJHg4KKRJuQ1/EvJxatrMef3NZXEPzwUIUZ3n1yJ2t7Q97siwRtbynRpQG9/69ebbtiZ8W3ScOZF/OmhvM4Rg==}
+
+  '@rnx-kit/console@2.0.0':
+    resolution: {integrity: sha512-8kyM0TUWpawWlaypHKWLgJjPoF5HcsjIxx9LSnYM8VgwBW1gOl2cCDhPYaeS8IG9m0fi4rMtQD8OJqmwpJ2jEg==}
+    engines: {node: '>=16.17'}
+
+  '@rnx-kit/metro-resolver-symlinks@0.2.11':
+    resolution: {integrity: sha512-vcV2PYuQo0GbXfcThXGjPP7lf7O99gj7djUWwPo/hjcmpe6AJFRzJbNgvxu9+DaZplJPTRi1GCwABWNipoKiCg==}
+    engines: {node: '>=16.17'}
+    peerDependencies:
+      oxc-resolver: ^11.0.0
+    peerDependenciesMeta:
+      oxc-resolver:
+        optional: true
+
+  '@rnx-kit/tools-node@3.0.3':
+    resolution: {integrity: sha512-EbSpiHCMuWvnp/hpayoStsIFncDYSr9zDhkjASJbNR88MtTGmHOOeECduKEbiWLRy3pFfzoHSago9jndL1xvlQ==}
+    engines: {node: '>=16.17'}
+
+  '@rnx-kit/tools-react-native@2.3.2':
+    resolution: {integrity: sha512-/9IbD6liBGEQMcmL2JwgIZd1N6ZW3XIjiTkgf5EHqpk1+8wMjRXhkSrSzPIblJERYqOjB3iDY37GhV/7FdQoRg==}
+    engines: {node: '>=16.17'}
 
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
@@ -8039,6 +8079,14 @@ snapshots:
       merge-options: 3.0.4
       react-native: 0.76.5(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.3.1)
 
+  '@react-native-community/datetimepicker@8.2.0(expo@52.0.48(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@expo/metro-runtime@4.0.1(react-native@0.76.5(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.3.1)))(react-native@0.76.5(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.3.1))(react@18.3.1))(react-native@0.76.5(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      invariant: 2.2.4
+      react: 18.3.1
+      react-native: 0.76.5(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.3.1)
+    optionalDependencies:
+      expo: 52.0.48(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@expo/metro-runtime@4.0.1(react-native@0.76.5(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.3.1)))(react-native@0.76.5(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.3.1))(react@18.3.1)
+
   '@react-native/assets-registry@0.76.5': {}
 
   '@react-native/babel-plugin-codegen@0.76.5(@babel/preset-env@7.28.6(@babel/core@7.28.6))':
@@ -8401,6 +8449,21 @@ snapshots:
   '@react-navigation/routers@7.5.3':
     dependencies:
       nanoid: 3.3.11
+
+  '@rnx-kit/console@2.0.0': {}
+
+  '@rnx-kit/metro-resolver-symlinks@0.2.11':
+    dependencies:
+      '@rnx-kit/console': 2.0.0
+      '@rnx-kit/tools-node': 3.0.3
+      '@rnx-kit/tools-react-native': 2.3.2
+      enhanced-resolve: 5.18.4
+
+  '@rnx-kit/tools-node@3.0.3': {}
+
+  '@rnx-kit/tools-react-native@2.3.2':
+    dependencies:
+      '@rnx-kit/tools-node': 3.0.3
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
