@@ -1,0 +1,128 @@
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  StyleSheet,
+} from 'react-native';
+import { Link } from 'expo-router';
+import { useAuth } from '../../lib/auth';
+
+export default function SignUpScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { signUp } = useAuth();
+
+  async function handleSignUp() {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await signUp(email, password);
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        Alert.alert('Success', 'Check your email to confirm your account.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.content}>
+          <Text style={styles.logo}>Linkkop</Text>
+          <Text style={styles.title}>Create account</Text>
+          <Text style={styles.subtitle}>Find your people</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="you@example.com"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              editable={!loading}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="••••••••"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              editable={!loading}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleSignUp}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>{loading ? 'Signing up…' : 'Sign up'}</Text>
+          </TouchableOpacity>
+
+          <Link href="/auth/sign-in" asChild>
+            <TouchableOpacity style={styles.link}>
+              <Text style={styles.linkText}>Already have an account? Sign in</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  scrollView: { flex: 1 },
+  scrollContent: { flexGrow: 1, padding: 24, paddingTop: 48 },
+  content: { maxWidth: 400, width: '100%', alignSelf: 'center' },
+  logo: { fontSize: 32, fontWeight: 'bold', color: '#111827', marginBottom: 4 },
+  title: { fontSize: 22, fontWeight: '600', color: '#374151', marginBottom: 4 },
+  subtitle: { fontSize: 16, color: '#41C28A', marginBottom: 32 },
+  inputGroup: { marginBottom: 20 },
+  label: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    backgroundColor: '#f9fafb',
+  },
+  button: {
+    backgroundColor: '#111827',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { color: '#41C28A', fontSize: 16, fontWeight: '600' },
+  link: { marginTop: 24, alignItems: 'center' },
+  linkText: { fontSize: 14, color: '#41C28A', fontWeight: '500' },
+});
