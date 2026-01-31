@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { User, getMessengerIconUrl } from '@/app/data/mockUsers';
-import { Linkedin, Twitter, Instagram, Facebook, Phone } from 'lucide-react';
+import { Linkedin, Twitter, Instagram, Facebook } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 
 interface UserCardProps {
@@ -80,37 +80,33 @@ export function UserCard({ user, onRequestContact, profilePageUrl }: UserCardPro
           </div>
         </div>
 
-        {/* Phone */}
-        <div>
-          <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">
-            Contact Number
-          </p>
-          <p className="text-sm font-mono text-neutral-700 flex items-center gap-1.5">
-            <Phone className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
-            {user.phone}
-          </p>
-        </div>
-
-        {/* Social networks */}
-        
-
-        {/* Messenger icons – available on */}
-        {user.messenger && user.messenger.length > 0 && (
+        {/* Contact Number – messenger icons before phone */}
+        {(user.phone || (user.messenger && user.messenger.length > 0)) && (
           <div>
-            <div className="flex flex-wrap gap-2">
-              {user.messenger.map((m) => {
-                const iconUrl = getMessengerIconUrl(m);
-                if (!iconUrl) return null;
-                return (
-                  <img
-                    key={m}
-                    src={iconUrl}
-                    alt={m}
-                    className="w-6 h-6 rounded-full object-cover border border-neutral-200"
-                    title={m.charAt(0).toUpperCase() + m.slice(1)}
-                  />
-                );
-              })}
+            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">
+              Contact Number
+            </p>
+            <div className="flex flex-wrap items-center gap-0">
+              {user.messenger && user.messenger.length > 0 && (
+                <>
+                  {user.messenger.map((m) => {
+                    const iconUrl = getMessengerIconUrl(m);
+                    if (!iconUrl) return null;
+                    return (
+                      <img
+                        key={m}
+                        src={iconUrl}
+                        alt={m}
+                        className="mr-1 w-4 h-4 rounded-full object-cover border border-neutral-200"
+                        title={m.charAt(0).toUpperCase() + m.slice(1)}
+                      />
+                    );
+                  })}
+                </>
+              )}
+              {user.phone && (
+                <span className="text-sm font-mono text-neutral-700">{user.phone}</span>
+              )}
             </div>
           </div>
         )}

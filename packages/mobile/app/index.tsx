@@ -1,4 +1,4 @@
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Image } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '../lib/auth';
 
@@ -8,7 +8,7 @@ export default function Index() {
   if (loading) {
     return (
       <View style={styles.welcome}>
-        <Text style={styles.logo}>Linkkop</Text>
+        <Image source={require('../public/Linkkop.png')} style={styles.logo} resizeMode="contain" />
         <Text style={styles.tagline}>Find your people</Text>
         <ActivityIndicator size="large" color="#41C28A" style={styles.spinner} />
       </View>
@@ -31,10 +31,9 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   logo: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
+    height: 56,
+    width: 200,
+    marginBottom: 12,
   },
   tagline: {
     fontSize: 18,

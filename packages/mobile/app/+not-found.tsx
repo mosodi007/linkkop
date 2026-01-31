@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Link, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -7,7 +7,7 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: 'Oops!' }} />
       <View style={styles.container}>
-        <Text style={styles.logo}>Linkkop</Text>
+        <Image source={require('../public/Linkkop.png')} style={styles.logo} resizeMode="contain" />
         <Ionicons name="home" size={48} color="#41C28A" style={styles.icon} />
         <Text style={styles.title}>Page not found</Text>
         <Text style={styles.description}>This screen doesn't exist.</Text>
@@ -30,9 +30,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   logo: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
+    height: 44,
+    width: 160,
     marginBottom: 16,
   },
   icon: { marginBottom: 8 },

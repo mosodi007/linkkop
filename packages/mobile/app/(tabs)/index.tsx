@@ -11,8 +11,12 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  Pressable,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../lib/auth';
 import { themeColors } from '../../lib/ThemeContext';
@@ -34,8 +38,60 @@ function formatTimeAgo(dateStr: string): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-function FeedPostCard({ post }: { post: Post }) {
+function FeedPostCard({
+  post,
+  onDeletePost,
+}: {
+  post: Post;
+  onDeletePost?: (postId: string) => void;
+}) {
+  const { profile } = useAuth();
+  const router = useRouter();
+  const [menuVisible, setMenuVisible] = useState(false);
   const authorPhoto = post.author.photo || PLACEHOLDER_AVATAR;
+  const isOwnPost = profile?.id === post.author.id;
+
+  const closeMenu = () => setMenuVisible(false);
+
+  const handleEdit = () => {
+    closeMenu();
+    Alert.alert('Edit post', 'Coming soon');
+  };
+  const handleHide = () => {
+    closeMenu();
+    Alert.alert('Post hidden', 'Post hidden from your feed');
+  };
+  const handlePrivacySettings = () => {
+    closeMenu();
+    router.push('/(tabs)/profile');
+  };
+  const handleDelete = () => {
+    closeMenu();
+    onDeletePost?.(post.id);
+    Alert.alert('Deleted', 'Post deleted');
+  };
+  const handleReportPost = () => {
+    closeMenu();
+    Alert.alert('Report submitted', "We'll review this post.");
+  };
+  const handleBlockUser = () => {
+    closeMenu();
+    Alert.alert('Blocked', `${post.author.name} has been blocked`);
+  };
+
+  const menuOptions = isOwnPost
+    ? [
+        { key: 'edit', label: 'Edit', icon: 'create-outline' as const, onPress: handleEdit },
+        { key: 'hide', label: 'Hide', icon: 'eye-off-outline' as const, onPress: handleHide },
+        { key: 'privacy', label: 'Privacy Settings', icon: 'shield-outline' as const, onPress: handlePrivacySettings },
+        { key: 'delete', label: 'Delete', icon: 'trash-outline' as const, onPress: handleDelete, destructive: true },
+      ]
+    : [
+        { key: 'hide', label: 'Hide', icon: 'eye-off-outline' as const, onPress: handleHide },
+        { key: 'report', label: 'Report post', icon: 'flag-outline' as const, onPress: handleReportPost },
+        { key: 'block', label: 'Block user', icon: 'person-remove-outline' as const, onPress: handleBlockUser },
+      ];
+
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -49,6 +105,14 @@ function FeedPostCard({ post }: { post: Post }) {
           </Text>
         </View>
         <Text style={styles.cardTime}>{formatTimeAgo(post.createdAt)}</Text>
+        <TouchableOpacity
+          style={styles.cardMoreBtn}
+          onPress={() => setMenuVisible(true)}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityLabel="More options"
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color={themeColors.text.secondary} />
+        </TouchableOpacity>
       </View>
       <Text style={styles.cardContent}>{post.content}</Text>
       {post.image ? (
@@ -66,6 +130,50 @@ function FeedPostCard({ post }: { post: Post }) {
           <Text style={styles.cardActionText}>{post.comments}</Text>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={closeMenu}
+      >
+        <Pressable style={styles.modalOverlay} onPress={closeMenu}>
+          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHandle} />
+                {menuOptions.map((opt) => (
+                  <Pressable
+                    key={opt.key}
+                    style={({ pressed }) => [
+                      styles.modalOption,
+                      pressed && styles.modalOptionPressed,
+                      opt.destructive && styles.modalOptionDestructive,
+                    ]}
+                    onPress={opt.onPress}
+                  >
+                    <Ionicons
+                      name={opt.icon}
+                      size={22}
+                      color={opt.destructive ? '#dc2626' : themeColors.text.primary}
+                    />
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        opt.destructive && styles.modalOptionTextDestructive,
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+                <Pressable
+                  style={({ pressed }) => [styles.modalCancel, pressed && styles.modalOptionPressed]}
+                  onPress={closeMenu}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -170,8 +278,14 @@ export default function FeedScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Linkkop</Text>
-          <Text style={styles.headerSubtitle}>Feed</Text>
+          <View style={styles.headerLeft}>
+            <Image source={require('../../public/Linkkop.png')} style={styles.headerLogo} resizeMode="contain" />
+            <View style={styles.headerLocation}>
+              <Ionicons name="location-outline" size={18} color={themeColors.text.secondary} />
+              <Text style={styles.headerSubtitle}>{profile?.city ?? 'Lagos'}, Nigeria</Text>
+            </View>
+          </View>
+          <Image source={{ uri: currentPhoto }} style={styles.headerAvatar} />
         </View>
 
         {loading ? (
@@ -183,7 +297,9 @@ export default function FeedScreen() {
           <FlatList
             data={posts}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <FeedPostCard post={item} />}
+            renderItem={({ item }) => (
+              <FeedPostCard post={item} onDeletePost={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))} />
+            )}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             refreshControl={
@@ -251,6 +367,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 12,
@@ -258,15 +377,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: themeColors.border.default,
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: themeColors.text.primary,
+  headerLeft: {
+    flex: 1,
+    minWidth: 0,
+  },
+  headerLogo: {
+    height: 28,
+    width: 90,
+  },
+  headerLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
   },
   headerSubtitle: {
     fontSize: 15,
     color: themeColors.text.secondary,
-    marginTop: 2,
+  },
+  headerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: themeColors.background.muted,
+    marginLeft: 12,
   },
   compose: {
     flexDirection: 'row',
@@ -379,6 +513,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: themeColors.text.muted,
   },
+  cardMoreBtn: {
+    padding: 8,
+    margin: -8,
+  },
   cardContent: {
     fontSize: 15,
     lineHeight: 22,
@@ -412,6 +550,59 @@ const styles = StyleSheet.create({
   cardActionText: {
     fontSize: 14,
     color: themeColors.text.secondary,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalSheet: {
+    backgroundColor: themeColors.background.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingBottom: 34,
+    paddingHorizontal: 16,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: themeColors.border.default,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border.light,
+  },
+  modalOptionPressed: {
+    opacity: 0.7,
+  },
+  modalOptionDestructive: {},
+  modalOptionText: {
+    fontSize: 17,
+    color: themeColors.text.primary,
+  },
+  modalOptionTextDestructive: {
+    color: '#dc2626',
+  },
+  modalCancel: {
+    marginTop: 8,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: themeColors.background.muted,
+  },
+  modalCancelText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: themeColors.text.primary,
   },
   center: {
     flex: 1,

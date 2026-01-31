@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuth } from '../../lib/auth';
@@ -48,7 +49,7 @@ export default function SignUpScreen() {
     >
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
-          <Text style={styles.logo}>Linkkop</Text>
+          <Image source={require('../../public/Linkkop.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.title}>Create account</Text>
           <Text style={styles.subtitle}>Find your people</Text>
 
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1, padding: 24, paddingTop: 48 },
   content: { maxWidth: 400, width: '100%', alignSelf: 'center' },
-  logo: { fontSize: 32, fontWeight: 'bold', color: '#111827', marginBottom: 4 },
+  logo: { height: 48, width: 180, marginBottom: 8 },
   title: { fontSize: 22, fontWeight: '600', color: '#374151', marginBottom: 4 },
   subtitle: { fontSize: 16, color: '#41C28A', marginBottom: 32 },
   inputGroup: { marginBottom: 20 },
