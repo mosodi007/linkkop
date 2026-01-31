@@ -25,6 +25,14 @@ import { fetchFeedPosts, createFeedPost, type Post } from '../../lib/feed';
 const PLACEHOLDER_AVATAR =
   'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop';
 
+function DefaultAvatar({ size = 40 }: { size?: number }) {
+  return (
+    <View style={[styles.defaultAvatar, { width: size, height: size, borderRadius: size / 2 }]}>
+      <Ionicons name="person-outline" size={size * 0.5} color={themeColors.text.muted} />
+    </View>
+  );
+}
+
 function formatTimeAgo(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -179,12 +187,16 @@ function FeedPostCard({
 }
 
 export default function FeedScreen() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [composeText, setComposeText] = useState('');
   const [posting, setPosting] = useState(false);
+
+  useEffect(() => {
+    refreshProfile();
+  }, [refreshProfile]);
 
   const loadFeed = useCallback(async () => {
     const list = await fetchFeedPosts();
@@ -210,8 +222,13 @@ export default function FeedScreen() {
     setRefreshing(false);
   }, [loadFeed]);
 
-  const currentPhoto = profile?.avatar_url || PLACEHOLDER_AVATAR;
+  const profileAvatarUrl = (profile?.avatar_url?.trim()) || null;
+  const currentPhoto = profileAvatarUrl || PLACEHOLDER_AVATAR;
   const currentName = profile?.full_name ?? 'You';
+  const [avatarError, setAvatarError] = useState(false);
+  useEffect(() => {
+    setAvatarError(false);
+  }, [profileAvatarUrl]);
 
   const handlePost = async () => {
     const text = composeText.trim();
@@ -285,7 +302,17 @@ export default function FeedScreen() {
               <Text style={styles.headerSubtitle}>{profile?.city ?? 'Lagos'}, Nigeria</Text>
             </View>
           </View>
-          <Image source={{ uri: currentPhoto }} style={styles.headerAvatar} />
+          {profileAvatarUrl && !avatarError ? (
+            <Image
+              source={{ uri: currentPhoto }}
+              style={styles.headerAvatar}
+              onError={() => setAvatarError(true)}
+            />
+          ) : (
+            <View style={styles.headerAvatarPlaceholder}>
+              <DefaultAvatar size={40} />
+            </View>
+          )}
         </View>
 
         {loading ? (
@@ -311,7 +338,15 @@ export default function FeedScreen() {
             }
             ListHeaderComponent={
               <View style={styles.compose}>
-                <Image source={{ uri: currentPhoto }} style={styles.composeAvatar} />
+                {profileAvatarUrl && !avatarError ? (
+                  <Image
+                    source={{ uri: currentPhoto }}
+                    style={styles.composeAvatar}
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : (
+                  <DefaultAvatar size={44} />
+                )}
                 <View style={styles.composeRight}>
                   <TextInput
                     style={styles.composeInput}
@@ -399,8 +434,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: themeColors.background.muted,
     marginLeft: 12,
+  },
+  headerAvatarPlaceholder: { marginLeft: 12 },
+  defaultAvatar: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors.background.muted,
   },
   compose: {
     flexDirection: 'row',
@@ -416,7 +456,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: themeColors.background.muted,
   },
   composeRight: {
     flex: 1,

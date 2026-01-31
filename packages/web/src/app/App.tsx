@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { FeedPage } from '@/app/components/FeedPage';
 import { DiscoverPage } from '@/app/components/DiscoverPage';
@@ -84,7 +85,10 @@ const PLACEHOLDER_AVATAR = 'https://images.unsplash.com/photo-1535713875002-d1d0
 
 function Header() {
   const { profile } = useAuth();
-  const avatarUrl = profile?.avatar_url || PLACEHOLDER_AVATAR;
+  const avatarUrl = (profile?.avatar_url?.trim()) || PLACEHOLDER_AVATAR;
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => setImgError(false), [avatarUrl]);
+  const src = imgError ? PLACEHOLDER_AVATAR : avatarUrl;
 
   return (
     <header className="sticky top-0 z-40 bg-neutral-50/95 backdrop-blur border-b border-neutral-200">
@@ -109,9 +113,10 @@ function Header() {
           aria-label="Your profile"
         >
           <img
-            src={avatarUrl}
+            src={src}
             alt=""
             className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
           />
         </Link>
       </div>

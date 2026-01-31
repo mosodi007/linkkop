@@ -11,7 +11,7 @@ const PLACEHOLDER_AVATAR = 'https://images.unsplash.com/photo-1535713875002-d1d0
 const ACCEPT_IMAGES = 'image/jpeg,image/png,image/webp,image/gif';
 
 export function FeedPage() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [composeText, setComposeText] = useState('');
@@ -19,6 +19,10 @@ export function FeedPage() {
   const [composeImagePreview, setComposeImagePreview] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    refreshProfile();
+  }, [refreshProfile]);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,7 +41,7 @@ export function FeedPage() {
     ? {
         id: profile.id,
         name: profile.full_name,
-        photo: profile.avatar_url || PLACEHOLDER_AVATAR,
+        photo: (profile.avatar_url?.trim()) || PLACEHOLDER_AVATAR,
         occupation: 'Member',
         city: profile.city || 'Lagos',
       }

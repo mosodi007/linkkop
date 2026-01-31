@@ -21,6 +21,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import * as Location from 'expo-location';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { themeColors } from '../../lib/ThemeContext';
@@ -32,6 +33,7 @@ import {
   saveOnboardingData,
 } from '../../lib/onboarding';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../lib/auth';
 
 const PRESET_INTERESTS = [
   'Business',
@@ -67,8 +69,26 @@ const STEPS = [
 
 const defaultSocial: OnboardingSocialNetworks = {};
 
+function base64ToBinary(base64: string): string {
+  if (typeof atob !== 'undefined') return atob(base64);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let binary = '';
+  base64 = base64.replace(/=+$/, '');
+  for (let i = 0; i < base64.length; i += 4) {
+    const a = chars.indexOf(base64[i]);
+    const b = chars.indexOf(base64[i + 1]);
+    const c = chars.indexOf(base64[i + 2]);
+    const d = chars.indexOf(base64[i + 3]);
+    binary += String.fromCharCode((a << 2) | (b >> 4));
+    if (c !== -1) binary += String.fromCharCode(((b & 15) << 4) | (c >> 2));
+    if (d !== -1) binary += String.fromCharCode(((c & 3) << 6) | d);
+  }
+  return binary;
+}
+
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { refreshProfile } = useAuth();
   const [step, setStep] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -262,16 +282,25 @@ export default function OnboardingScreen() {
 
         let avatarUrl: string | null = null;
         if (profilePhotoUri) {
-          const ext = profilePhotoUri.split('.').pop() || 'jpg';
-          const path = `${user.id}/avatar.${ext}`;
-          const response = await fetch(profilePhotoUri);
-          const blob = await response.blob();
-          const { error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
-          if (!uploadError) {
-            const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
-            avatarUrl = urlData?.publicUrl ?? null;
+          try {
+            const ext = (profilePhotoUri.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z]/g, '') || 'jpg';
+            const path = `${user.id}/avatar.${ext === 'png' ? 'png' : 'jpg'}`;
+            const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
+            const base64 = await FileSystem.readAsStringAsync(profilePhotoUri, {
+              encoding: 'base64',
+            });
+            const binaryString = base64ToBinary(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+            const { error: uploadError } = await supabase.storage
+              .from('avatars')
+              .upload(path, bytes, { upsert: true, contentType });
+            if (!uploadError) {
+              const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+              avatarUrl = urlData?.publicUrl ?? null;
+            }
+          } catch (uploadErr) {
+            console.warn('Avatar upload failed', uploadErr);
           }
         }
 
@@ -297,8 +326,9 @@ export default function OnboardingScreen() {
           Alert.alert('Error', profileError.message);
           return;
         }
+        await refreshProfile();
         setLoading(false);
-        router.replace('/(tabs)');
+        setTimeout(() => router.replace('/(tabs)'), 0);
         return;
       }
 
@@ -696,6 +726,7 @@ export default function OnboardingScreen() {
             ) : (
               <FlatList
                 data={filteredCountries}
+                extraData={countrySearch}
                 keyExtractor={(c) => c.value}
                 style={styles.modalList}
                 keyboardShouldPersistTaps="handled"

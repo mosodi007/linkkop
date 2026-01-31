@@ -28,6 +28,7 @@ import {
   ONBOARDING_COMPLETE_KEY,
 } from '@/app/types/onboarding';
 import { supabase } from '@/app/lib/supabase';
+import { useAuth } from '@/app/lib/auth';
 import { cn } from '@/app/components/ui/utils';
 import { toast } from 'sonner';
 
@@ -97,6 +98,7 @@ function getPayload(values: FormValues): OnboardingPayload {
 
 export function SignUpFlow() {
   const navigate = useNavigate();
+  const { refreshProfile } = useAuth();
   const [step, setStep] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -156,11 +158,12 @@ export function SignUpFlow() {
         let avatarUrl: string | null = null;
         const photoFile = values.profilePhoto?.[0];
         if (photoFile) {
-          const ext = photoFile.name.split('.').pop() || 'jpg';
-          const path = `${user.id}/avatar.${ext}`;
+          const ext = (photoFile.name.split('.').pop() || 'jpg').toLowerCase();
+          const path = `${user.id}/avatar.${ext === 'png' ? 'png' : 'jpg'}`;
+          const contentType = photoFile.type?.startsWith('image/') ? photoFile.type : 'image/jpeg';
           const { error: uploadError } = await supabase.storage
             .from('avatars')
-            .upload(path, photoFile, { upsert: true });
+            .upload(path, photoFile, { upsert: true, contentType });
           if (!uploadError) {
             const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
             avatarUrl = urlData?.publicUrl ?? null;
@@ -195,8 +198,9 @@ export function SignUpFlow() {
           toast.error(profileError.message ?? 'Could not save profile');
           return;
         }
+        await refreshProfile();
         toast.success('Account created');
-        navigate('/feed');
+        setTimeout(() => navigate('/feed'), 0);
         return;
       }
 

@@ -21,6 +21,7 @@ export function PersonalProfilePage() {
   const { profile } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [avatarError, setAvatarError] = useState(false);
 
   useEffect(() => {
     if (!profile) {
@@ -39,6 +40,8 @@ export function PersonalProfilePage() {
     };
   }, [profile?.id]);
 
+  useEffect(() => setAvatarError(false), [profile?.avatar_url]);
+
   if (!profile) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
@@ -47,7 +50,8 @@ export function PersonalProfilePage() {
     );
   }
 
-  const avatarUrl = profile.avatar_url || PLACEHOLDER_AVATAR;
+  const profileAvatarUrl = (profile?.avatar_url?.trim()) || PLACEHOLDER_AVATAR;
+  const avatarUrl = avatarError ? PLACEHOLDER_AVATAR : profileAvatarUrl;
   const social = (profile.social_networks ?? {}) as Record<string, string>;
   const messengers = Array.isArray(profile.messenger) ? profile.messenger : [];
 
@@ -61,6 +65,7 @@ export function PersonalProfilePage() {
               src={avatarUrl}
               alt=""
               className="w-full h-full object-cover"
+              onError={() => setAvatarError(true)}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-4 flex items-end justify-between gap-4">
@@ -70,6 +75,7 @@ export function PersonalProfilePage() {
                     src={avatarUrl}
                     alt={profile.full_name}
                     className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white object-cover shadow-lg"
+                    onError={() => setAvatarError(true)}
                   />
                 </div>
                 <div className="min-w-0 pb-1">
