@@ -17,6 +17,8 @@ export interface CountryOption {
   dialCode: string;
   label: string;
   iso2: string;
+  /** Country name only (for search by name) */
+  name: string;
 }
 
 function normalizeDialCode(code: string): string {
@@ -274,6 +276,7 @@ export const COUNTRY_OPTIONS: CountryOption[] = RAW_COUNTRIES.map(({ country, co
     dialCode,
     label: `${country} (${dialCode})`,
     iso2: iso,
+    name: country,
   };
 });
 

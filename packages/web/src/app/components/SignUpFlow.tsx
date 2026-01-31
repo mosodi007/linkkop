@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Camera, Eye, EyeOff } from 'lucide-react';
+import { Camera, Eye, EyeOff, ChevronDown } from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -21,6 +21,7 @@ import { Checkbox } from '@/app/components/ui/checkbox';
 import { Switch } from '@/app/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import { COUNTRY_OPTIONS } from '@/app/data/countries';
+import { getMessengerIconUrl } from '@/app/data/mockUsers';
 import {
   OnboardingPayload,
   OnboardingSocialNetworks,
@@ -28,6 +29,20 @@ import {
   ONBOARDING_COMPLETE_KEY,
 } from '@/app/types/onboarding';
 import { supabase } from '@/app/lib/supabase';
+import { fetchOccupations, type Occupation } from '@/app/lib/occupations';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/app/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/app/components/ui/command';
 import { useAuth } from '@/app/lib/auth';
 import { cn } from '@/app/components/ui/utils';
 import { toast } from 'sonner';
@@ -47,7 +62,7 @@ const PRESET_INTERESTS = [
 
 const STEPS = [
   { title: 'Account', fields: ['email', 'password', 'confirmPassword'] as const },
-  { title: 'Basics', fields: ['fullName', 'dateOfBirth', 'interests'] as const },
+  { title: 'Basics', fields: ['fullName', 'dateOfBirth', 'interests', 'gender', 'occupation'] as const },
   { title: 'Contact', fields: ['countryCode', 'phone', 'messenger'] as const },
   { title: 'Social', fields: ['socialNetworks'] as const },
   { title: 'Profile', fields: ['profilePhoto', 'bio'] as const },
@@ -69,6 +84,7 @@ type FormValues = Omit<OnboardingPayload, 'profilePhoto'> & {
   dateOfBirth: Date | undefined;
   profilePhoto: FileList | null;
   countryCode: string;
+  occupation: string; // display: occupationId stored as occupationId in payload
 };
 
 const defaultSocial: OnboardingSocialNetworks = {};
@@ -86,6 +102,8 @@ function getPayload(values: FormValues): OnboardingPayload {
     fullName: values.fullName,
     dateOfBirth: values.dateOfBirth ? values.dateOfBirth.toISOString() : '',
     interests: values.interests ?? [],
+    gender: values.gender ?? 'male',
+    occupationId: values.occupation && values.occupation.trim() ? values.occupation.trim() : null,
     phone: fullPhone,
     messenger: values.messenger,
     socialNetworks: values.socialNetworks ?? defaultSocial,
@@ -112,6 +130,8 @@ export function SignUpFlow() {
       fullName: '',
       dateOfBirth: undefined,
       interests: [],
+      gender: 'male',
+      occupation: '',
       countryCode: 'NG',
       phone: '',
       messenger: [],
@@ -123,13 +143,49 @@ export function SignUpFlow() {
     },
   });
 
+  const [occupations, setOccupations] = useState<Occupation[]>([]);
+  const [workOpen, setWorkOpen] = useState(false);
+  useEffect(() => {
+    if (step === 1) fetchOccupations().then(setOccupations);
+  }, [step]);
+  const selectedOccupation = occupations.find(
+    (o) => o.id === form.watch('occupation')
+  );
+
   const currentStep = STEPS[step];
   const isLastStep = step === STEPS.length - 1;
+
+  const socialNetworks = form.watch('socialNetworks') ?? {};
+  const hasAtLeastOneSocial = (
+    ['instagram', 'facebook', 'twitter', 'linkedin'] as const
+  ).some(
+    (k) => typeof socialNetworks[k] === 'string' && socialNetworks[k].trim().length > 0
+  );
+
+  useEffect(() => {
+    if (step === 3 && hasAtLeastOneSocial) {
+      form.clearErrors('socialNetworks');
+    }
+  }, [step, hasAtLeastOneSocial]);
 
   const validateStep = async (): Promise<boolean> => {
     if (!currentStep) return true;
     const valid = await form.trigger([...currentStep.fields]);
-    return valid;
+    if (!valid) return false;
+    if (step === 3) {
+      const sn = form.getValues().socialNetworks ?? {};
+      const hasOne = (
+        ['instagram', 'facebook', 'twitter', 'linkedin'] as const
+      ).some((k) => typeof sn[k] === 'string' && sn[k].trim().length > 0);
+      if (!hasOne) {
+        form.setError('socialNetworks', {
+          type: 'manual',
+          message: 'Add at least one social profile',
+        });
+        return false;
+      }
+    }
+    return true;
   };
 
   const handleNext = async () => {
@@ -190,6 +246,9 @@ export function SignUpFlow() {
           lat: payload.coords?.lat ?? null,
           lng: payload.coords?.lng ?? null,
           city: null,
+          country: values.countryCode?.trim() || null,
+          gender: payload.gender || null,
+          occupation_id: payload.occupationId || null,
         };
         const { error: profileError } = await supabase
           .from('profiles')
@@ -449,6 +508,96 @@ export function SignUpFlow() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="gender"
+                  rules={{ required: 'Select your gender' }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => field.onChange('male')}
+                          className={cn(
+                            'flex-1 rounded-lg border px-2 py-1 text-sm font-medium transition-colors',
+                            field.value === 'male'
+                              ? 'border-neutral-900 bg-neutral-900 text-white'
+                              : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
+                          )}
+                        >
+                          Male
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => field.onChange('female')}
+                          className={cn(
+                            'flex-1 rounded-lg border px-2 py-1 text-sm font-medium transition-colors',
+                            field.value === 'female'
+                              ? 'border-neutral-900 bg-neutral-900 text-white'
+                              : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
+                          )}
+                        >
+                          Female
+                        </button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="occupation"
+                  rules={{ required: 'Select your work' }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Work</FormLabel>
+                      <Popover open={workOpen} onOpenChange={setWorkOpen}>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            role="combobox"
+                            aria-expanded={workOpen}
+                            className={cn(
+                              'flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 text-left text-sm font-normal hover:bg-neutral-50',
+                              !field.value && 'text-neutral-500'
+                            )}
+                          >
+                            {selectedOccupation?.name ?? 'Select work'}
+                            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Search work..." />
+                            <CommandList>
+                              <CommandEmpty>No work found.</CommandEmpty>
+                              <CommandGroup>
+                                {occupations.length === 0 ? (
+                                  <div className="py-6 text-center text-sm text-neutral-500">Loading…</div>
+                                ) : (
+                                  occupations.map((o) => (
+                                    <CommandItem
+                                      key={o.id}
+                                      value={o.name}
+                                      onSelect={() => {
+                                        form.setValue('occupation', o.id);
+                                        setWorkOpen(false);
+                                      }}
+                                    >
+                                      {o.name}
+                                    </CommandItem>
+                                  ))
+                                )}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             )}
 
@@ -478,13 +627,22 @@ export function SignUpFlow() {
                     <FormField
                       control={form.control}
                       name="phone"
-                      rules={{ required: 'Phone number is required' }}
+                      rules={{
+                        required: 'Phone number is required',
+                        validate: (value) => {
+                          const digits = (value ?? '').replace(/\D/g, '');
+                          if (digits.length < 5) return 'Enter at least 5 digits';
+                          if (digits.length > 15) return 'Enter at most 15 digits';
+                          return true;
+                        },
+                      }}
                       render={({ field }) => (
                         <FormItem className="flex-1 min-w-0">
                           <FormControl>
                             <Input
                               type="tel"
-                              placeholder="XXX XXX XXXX"
+                              placeholder="800 000 0000"
+                              maxLength={15}
                               className="bg-white border-0 rounded-none rounded-r-xl font-mono h-11 flex-1 focus-visible:ring-0 focus-visible:ring-offset-0"
                               {...field}
                             />
@@ -506,41 +664,60 @@ export function SignUpFlow() {
                       </p>
                       <FormControl>
                         <div className="flex flex-wrap gap-3">
-                          {MESSENGER_OPTIONS.map((opt) => (
-                            <div
-                              key={opt.value}
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox
-                                id={`messenger-${opt.value}`}
-                                checked={field.value?.includes(opt.value)}
-                                onCheckedChange={(checked) => {
-                                  const next = checked
-                                    ? [...(field.value ?? []), opt.value]
-                                    : (field.value ?? []).filter((x) => x !== opt.value);
-                                  field.onChange(next);
-                                }}
-                              />
-                              <label
-                                htmlFor={`messenger-${opt.value}`}
-                                className="text-sm font-normal cursor-pointer leading-none"
+                          {MESSENGER_OPTIONS.map((opt) => {
+                            const iconUrl = getMessengerIconUrl(opt.value);
+                            return (
+                              <div
+                                key={opt.value}
+                                className="flex items-center space-x-2"
                               >
-                                {opt.label}
-                              </label>
-                            </div>
-                          ))}
+                                <Checkbox
+                                  id={`messenger-${opt.value}`}
+                                  checked={field.value?.includes(opt.value)}
+                                  onCheckedChange={(checked) => {
+                                    const next = checked
+                                      ? [...(field.value ?? []), opt.value]
+                                      : (field.value ?? []).filter((x) => x !== opt.value);
+                                    field.onChange(next);
+                                  }}
+                                />
+                                {iconUrl && (
+                                  <img
+                                    src={iconUrl}
+                                    alt=""
+                                    className="w-5 h-5 shrink-0"
+                                    aria-hidden
+                                  />
+                                )}
+                                <label
+                                  htmlFor={`messenger-${opt.value}`}
+                                  className="text-sm font-normal cursor-pointer leading-none"
+                                >
+                                  {opt.label}
+                                </label>
+                              </div>
+                            );
+                          })}
                         </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                <p className="text-xs text-neutral-500">
+                  Your contact details are not visible to others
+                </p>
               </div>
             )}
 
             {step === 3 && (
               <div className="space-y-4">
                 <FormLabel>Social networks</FormLabel>
+                {form.formState.errors.socialNetworks && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.socialNetworks.message}
+                  </p>
+                )}
                 {(['instagram', 'facebook', 'twitter', 'linkedin'] as const).map(
                   (key) => (
                     <FormField
@@ -672,7 +849,11 @@ export function SignUpFlow() {
               >
                 Back
               </Button>
-              <Button type="submit" className="flex-1 bg-neutral-900 hover:bg-neutral-800">
+              <Button
+                type="submit"
+                className="flex-1 bg-neutral-900 hover:bg-neutral-800"
+                disabled={step === 3 && !hasAtLeastOneSocial}
+              >
                 {isLastStep ? 'Complete' : 'Next'}
               </Button>
             </div>

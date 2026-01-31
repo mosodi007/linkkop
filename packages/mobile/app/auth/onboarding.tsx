@@ -58,6 +58,16 @@ const MESSENGER_OPTIONS = [
   { value: 'imo', label: 'IMO' },
 ] as const;
 
+const MESSENGER_ICONS: Record<string, number> = {
+  whatsapp: require('../../public/WhatsApp.png'),
+  signal: require('../../public/Signal.png'),
+  telegram: require('../../public/Telegram.png'),
+  viber: require('../../public/Viber.png'),
+  wechat: require('../../public/WeChat.png'),
+  line: require('../../public/LINE.png'),
+  imo: require('../../public/IMO.png'),
+};
+
 const STEPS = [
   { title: 'Account', fields: ['email', 'password', 'confirmPassword'] },
   { title: 'Basics', fields: ['fullName', 'dateOfBirth', 'interests', 'gender', 'occupation'] },
@@ -132,11 +142,13 @@ export default function OnboardingScreen() {
   const filteredCountries = useMemo(() => {
     if (!countrySearch.trim()) return COUNTRY_OPTIONS;
     const q = countrySearch.trim().toLowerCase();
+    const qDigits = q.replace(/\D/g, '');
     return COUNTRY_OPTIONS.filter(
       (o) =>
+        o.name.toLowerCase().includes(q) ||
         o.label.toLowerCase().includes(q) ||
         o.dialCode.toLowerCase().includes(q) ||
-        o.dialCode.replace(/\D/g, '').includes(q.replace(/\D/g, ''))
+        (qDigits.length > 0 && o.dialCode.replace(/\D/g, '').includes(qDigits))
     );
   }, [countrySearch]);
 
@@ -182,7 +194,10 @@ export default function OnboardingScreen() {
       if (!occupationId) nextErrors.occupation = 'Select your work';
     }
     if (step === 2) {
-      if (!phone.trim()) nextErrors.phone = 'Phone number is required';
+      const phoneDigits = phone.replace(/\D/g, '');
+      if (phoneDigits.length === 0) nextErrors.phone = 'Phone number is required';
+      else if (phoneDigits.length < 5) nextErrors.phone = 'Enter at least 5 digits';
+      else if (phoneDigits.length > 15) nextErrors.phone = 'Enter at most 15 digits';
       if (messenger.length === 0) nextErrors.messenger = 'Select at least one messenger';
     }
     if (step === 3) {
@@ -218,7 +233,8 @@ export default function OnboardingScreen() {
       return nameOk && dobOk && interestsOk && genderOk && occupationOk;
     }
     if (step === 2) {
-      const phoneOk = phone.trim().length > 0;
+      const phoneDigits = phone.replace(/\D/g, '');
+      const phoneOk = phoneDigits.length >= 5 && phoneDigits.length <= 15;
       const messengerOk = messenger.length >= 1;
       return phoneOk && messengerOk;
     }
@@ -483,7 +499,7 @@ export default function OnboardingScreen() {
     0: { title: 'Create your account', subtitle: 'We’ll use this to sign you in and keep your profile secure.' },
     1: { title: 'About you', subtitle: 'Help others find you with a few basics.' },
     2: { title: 'How to reach you', subtitle: 'Add your phone and preferred messengers.' },
-    3: { title: 'Social links', subtitle: 'Optional — connect your profiles.' },
+    3: { title: 'Social links', subtitle: 'Add your social profiles.' },
     4: { title: 'Your profile', subtitle: 'A photo and short bio go a long way.' },
     5: { title: 'Location', subtitle: 'Find people near you.' },
   };
@@ -716,7 +732,7 @@ export default function OnboardingScreen() {
             <View style={styles.form}>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Phone number</Text>
-                <View style={styles.phoneRow}>
+                <View style={[styles.phoneRow, errors.phone && styles.phoneRowError]}>
                   <TouchableOpacity
                     style={styles.countryBtn}
                     onPress={() => {
@@ -734,13 +750,15 @@ export default function OnboardingScreen() {
                     )}
                     <Ionicons name="chevron-down" size={18} color={themeColors.text.secondary} />
                   </TouchableOpacity>
+                  <View style={styles.phoneSeparator} />
                   <TextInput
-                    style={[styles.phoneInput, errors.phone ? styles.inputError : null]}
-                    placeholder="XXX XXX XXXX"
+                    style={styles.phoneInput}
+                    placeholder="800 000 0000"
                     placeholderTextColor={themeColors.text.muted}
                     value={phone}
-                    onChangeText={setPhone}
+                    onChangeText={(v) => setPhone(v.replace(/\D/g, '').slice(0, 15))}
                     keyboardType="phone-pad"
+                    maxLength={15}
                     editable={!loading}
                   />
                 </View>
@@ -757,12 +775,18 @@ export default function OnboardingScreen() {
                       onPress={() => toggleMessenger(opt.value)}
                       activeOpacity={0.8}
                     >
+                      <Image
+                        source={MESSENGER_ICONS[opt.value]}
+                        style={styles.messengerChipIcon}
+                        resizeMode="contain"
+                      />
                       <Text style={[styles.chipText, messenger.includes(opt.value) && styles.chipTextActive]}>{opt.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
                 {errors.messenger ? <Text style={styles.errorText}>{errors.messenger}</Text> : null}
               </View>
+              <Text style={styles.contactNote}>Your contact details are not visible to others</Text>
             </View>
           )}
 
@@ -1097,6 +1121,7 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 20 },
   label: { fontSize: 14, fontWeight: '600', color: themeColors.text.primary, marginBottom: 8 },
   hint: { fontSize: 13, color: themeColors.text.muted, marginBottom: 8 },
+  contactNote: { fontSize: 12, color: themeColors.text.muted, marginTop: 8, marginBottom: 4 },
   input: {
     borderWidth: 1,
     borderColor: themeColors.border.default,
@@ -1158,7 +1183,10 @@ const styles = StyleSheet.create({
   eyeBtn: { padding: 8 },
   errorText: { fontSize: 12, color: '#dc2626', marginTop: 4 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
+  messengerChipIcon: { width: 20, height: 20, marginRight: 6 },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 22,
@@ -1168,25 +1196,46 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginBottom: 10,
   },
-  chipActive: { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
+  chipActive: { backgroundColor: '#000', borderColor: themeColors.primary },
   chipText: { fontSize: 14, fontWeight: '500', color: themeColors.text.secondary },
   chipTextActive: { color: themeColors.text.inverse },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: themeColors.border.default,
+    backgroundColor: themeColors.background.input,
+    overflow: 'hidden',
+  },
+  phoneRowError: {
+    borderColor: '#dc2626',
+  },
   countryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: themeColors.border.default,
-    backgroundColor: themeColors.background.input,
     minWidth: 96,
+    backgroundColor: themeColors.background.input,
+  },
+  phoneSeparator: {
+    width: 1,
+    backgroundColor: themeColors.border.default,
+    alignSelf: 'stretch',
   },
   countryFlag: { fontSize: 18, lineHeight: 20 },
   countryBtnText: { fontSize: 16, color: themeColors.text.primary, fontWeight: '600' },
-  phoneInput: { flex: 1, borderWidth: 1, borderColor: themeColors.border.default, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: themeColors.text.primary, backgroundColor: themeColors.background.input },
+  phoneInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: themeColors.text.primary,
+    backgroundColor: 'transparent',
+    minWidth: 0,
+  },
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   avatarWrap: { alignSelf: 'flex-start' },
   avatar: { width: 100, height: 100, borderRadius: 50 },

@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase) return;
     const { data } = await supabase
       .from('profiles')
-      .select('*')
+      .select('*, occupations(name)')
       .eq('id', userId)
       .single();
     setProfile(data as ProfileRow | null);

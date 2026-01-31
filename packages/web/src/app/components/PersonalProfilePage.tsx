@@ -82,9 +82,9 @@ export function PersonalProfilePage() {
                   <h1 className="text-white font-semibold text-xl sm:text-2xl drop-shadow-md truncate">
                     {profile.full_name}
                   </h1>
-                  {profile.city && (
-                    <p className="text-white/90 text-sm mt-0.5 truncate">{profile.city}</p>
-                  )}
+                  <p className="text-white/90 text-sm mt-0.5 truncate">
+                    {[profile.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : null, profile.occupations?.name, profile.city].filter(Boolean).join(' · ')}
+                  </p>
                 </div>
               </div>
               <Link to="/settings" className="shrink-0">

@@ -20,6 +20,8 @@ export interface ProfileRow {
   country: string | null;
   gender: string | null;
   occupation_id: string | null;
+  /** Joined from occupations when selected with select('*, occupations(name)') */
+  occupations?: { name: string } | null;
   created_at: string;
   updated_at: string;
   post_visibility?: 'everyone' | 'contacts' | 'only_me';
