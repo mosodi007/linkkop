@@ -35,6 +35,14 @@ function getMessengerIcon(messenger: string): number | undefined {
   return MESSENGER_ICONS[messenger.toLowerCase()];
 }
 
+const SOCIAL_KEYS_ORDER = ['instagram', 'facebook', 'twitter', 'linkedin'] as const;
+const SOCIAL_ICON_NAMES: Record<string, 'logo-instagram' | 'logo-facebook' | 'logo-twitter' | 'logo-linkedin'> = {
+  instagram: 'logo-instagram',
+  facebook: 'logo-facebook',
+  twitter: 'logo-twitter',
+  linkedin: 'logo-linkedin',
+};
+
 type CategoryKey = 'all' | 'nearby' | 'interest' | 'profession' | 'new';
 
 const CATEGORIES: { key: CategoryKey; label: string; description: string }[] = [
@@ -77,15 +85,30 @@ function DiscoverUserCard({
       <View style={styles.cardImageContainer}>
         <Image source={{ uri: photo }} style={styles.cardImage} resizeMode="cover" />
         <View style={styles.cardOverlay}>
-          <Text style={styles.cardName} numberOfLines={1}>
-            {user.name}, {user.age}
-          </Text>
-          <Text style={styles.cardOccupation} numberOfLines={1}>
-            {user.occupation || 'Member'}
-          </Text>
-          <Text style={styles.cardLocation} numberOfLines={1}>
-            {user.distance} km away · {user.city || 'Lagos'}
-          </Text>
+          <View style={styles.cardOverlayText}>
+            <Text style={styles.cardName} numberOfLines={1}>
+              {user.name}, {user.age}
+            </Text>
+            <Text style={styles.cardOccupation} numberOfLines={1}>
+              {user.occupation || 'Member'}
+            </Text>
+            <Text style={styles.cardLocation} numberOfLines={1}>
+              {user.distance} km away · {user.city || 'Lagos'}
+            </Text>
+          </View>
+          {user.socialNetworks && Object.keys(user.socialNetworks).length > 0 ? (
+            <View style={styles.cardOverlayIcons}>
+              {SOCIAL_KEYS_ORDER.filter((key) => user.socialNetworks[key]?.trim()).map((key) => {
+                const iconName = SOCIAL_ICON_NAMES[key];
+                if (!iconName) return null;
+                return (
+                  <View key={key} style={styles.cardPhotoSocialIconWrap}>
+                    <Ionicons name={iconName} size={18} color="#fff" />
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
         </View>
       </View>
       <View style={styles.cardBody}>
@@ -372,9 +395,40 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
     paddingVertical: 16,
     paddingHorizontal: 14,
     backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  cardOverlayText: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 10,
+  },
+  cardOverlayIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cardPhotoMessengerIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  cardPhotoSocialIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardName: {
     fontSize: 17,

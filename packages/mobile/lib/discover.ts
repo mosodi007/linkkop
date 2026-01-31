@@ -14,6 +14,7 @@ export interface DiscoverUser {
   occupation: string;
   phone: string;
   messenger: string[];
+  socialNetworks: Record<string, string>;
 }
 
 function ageFromDateOfBirth(dateOfBirth: string | null): number {
@@ -28,6 +29,7 @@ function ageFromDateOfBirth(dateOfBirth: string | null): number {
 }
 
 function mapRowToUser(row: DiscoverProfileRow): DiscoverUser {
+  const social = (row.social_networks ?? {}) as Record<string, string>;
   return {
     id: row.id,
     name: row.full_name,
@@ -40,6 +42,7 @@ function mapRowToUser(row: DiscoverProfileRow): DiscoverUser {
     occupation: row.occupation ?? '',
     phone: row.phone ?? '',
     messenger: row.messenger ?? [],
+    socialNetworks: social,
   };
 }
 
@@ -56,6 +59,7 @@ const MOCK_DISCOVER_USERS: DiscoverUser[] = [
     occupation: 'Marketing Manager',
     phone: '+234 XXX XXX 7845',
     messenger: ['whatsapp', 'telegram'],
+    socialNetworks: { linkedin: 'amina-okonkwo', twitter: '@aminao', instagram: '@amina.o' },
   },
   {
     id: '2',
@@ -69,6 +73,7 @@ const MOCK_DISCOVER_USERS: DiscoverUser[] = [
     occupation: 'Software Engineer',
     phone: '+234 XXX XXX 9234',
     messenger: ['whatsapp', 'signal'],
+    socialNetworks: { linkedin: 'chukwudi-eze', facebook: 'chukwudi.eze', instagram: '@chukwudi' },
   },
   {
     id: '3',
@@ -82,6 +87,7 @@ const MOCK_DISCOVER_USERS: DiscoverUser[] = [
     occupation: 'Fashion Designer',
     phone: '+234 XXX XXX 5678',
     messenger: ['whatsapp', 'telegram', 'line'],
+    socialNetworks: { twitter: '@funmi_a', instagram: '@funmi.adeyemi', linkedin: 'funmi-adeyemi' },
   },
   {
     id: '4',
@@ -95,6 +101,7 @@ const MOCK_DISCOVER_USERS: DiscoverUser[] = [
     occupation: 'Business Consultant',
     phone: '+234 XXX XXX 3421',
     messenger: ['whatsapp', 'viber'],
+    socialNetworks: { linkedin: 'zainab-ibrahim', instagram: '@zainab.i', facebook: 'zainab.ibrahim' },
   },
   {
     id: '5',
@@ -108,6 +115,7 @@ const MOCK_DISCOVER_USERS: DiscoverUser[] = [
     occupation: 'Financial Analyst',
     phone: '+234 XXX XXX 8912',
     messenger: ['whatsapp', 'telegram', 'signal'],
+    socialNetworks: { linkedin: 'tunde-bakare', twitter: '@tunde_b', instagram: '@tundebakare' },
   },
   {
     id: '6',
@@ -121,6 +129,7 @@ const MOCK_DISCOVER_USERS: DiscoverUser[] = [
     occupation: 'Content Creator',
     phone: '+234 XXX XXX 1122',
     messenger: ['whatsapp', 'telegram', 'imo'],
+    socialNetworks: { instagram: '@ngozi.e', twitter: '@ngozi_eze' },
   },
 ];
 
