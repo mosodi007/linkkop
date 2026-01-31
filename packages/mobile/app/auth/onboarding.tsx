@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ import * as Location from 'expo-location';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { themeColors } from '../../lib/ThemeContext';
 import { COUNTRY_OPTIONS, getFlagEmoji } from '../../lib/countries';
+import { fetchOccupations, type Occupation } from '../../lib/occupations';
 import {
   type OnboardingPayload,
   type OnboardingSocialNetworks,
@@ -59,7 +60,7 @@ const MESSENGER_OPTIONS = [
 
 const STEPS = [
   { title: 'Account', fields: ['email', 'password', 'confirmPassword'] },
-  { title: 'Basics', fields: ['fullName', 'dateOfBirth', 'interests'] },
+  { title: 'Basics', fields: ['fullName', 'dateOfBirth', 'interests', 'gender', 'occupation'] },
   { title: 'Contact', fields: ['countryCode', 'phone', 'messenger'] },
   { title: 'Social', fields: ['socialNetworks'] },
   { title: 'Profile', fields: ['profilePhoto', 'bio'] },
@@ -93,6 +94,12 @@ export default function OnboardingScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | null>(null);
+  const [occupationId, setOccupationId] = useState<string | null>(null);
+  const [occupationModalVisible, setOccupationModalVisible] = useState(false);
+  const [occupationSearch, setOccupationSearch] = useState('');
+  const [occupations, setOccupations] = useState<Occupation[]>([]);
+  const [occupationsLoading, setOccupationsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -132,6 +139,26 @@ export default function OnboardingScreen() {
         o.dialCode.replace(/\D/g, '').includes(q.replace(/\D/g, ''))
     );
   }, [countrySearch]);
+
+  useEffect(() => {
+    if (!occupationModalVisible) return;
+    setOccupationsLoading(true);
+    fetchOccupations()
+      .then(setOccupations)
+      .finally(() => setOccupationsLoading(false));
+  }, [occupationModalVisible]);
+
+  const filteredOccupations = useMemo(() => {
+    if (!occupationSearch.trim()) return occupations;
+    const q = occupationSearch.trim().toLowerCase();
+    return occupations.filter((o) => o.name.toLowerCase().includes(q));
+  }, [occupations, occupationSearch]);
+
+  const selectedOccupation = useMemo(
+    () => occupations.find((o) => o.id === occupationId),
+    [occupations, occupationId]
+  );
+
   const insets = useSafeAreaInsets();
 
   function validateStep(): boolean {
@@ -151,13 +178,76 @@ export default function OnboardingScreen() {
         if (isNaN(d.getTime()) || d > new Date()) nextErrors.dateOfBirth = 'Enter a valid date (YYYY-MM-DD)';
       }
       if (interests.length === 0) nextErrors.interests = 'Select at least one interest';
+      if (!gender) nextErrors.gender = 'Select your gender';
+      if (!occupationId) nextErrors.occupation = 'Select your work';
     }
     if (step === 2) {
       if (!phone.trim()) nextErrors.phone = 'Phone number is required';
+      if (messenger.length === 0) nextErrors.messenger = 'Select at least one messenger';
+    }
+    if (step === 3) {
+      const hasHandle = Object.values(socialNetworks).some(
+        (v) => typeof v === 'string' && v.trim().length > 0
+      );
+      if (!hasHandle) nextErrors.socialNetworks = 'Enter at least one handle';
+    }
+    if (step === 4) {
+      if (!profilePhotoUri && !profilePhotoBase64) nextErrors.profilePhoto = 'Profile photo is required';
+      if (!bio.trim()) nextErrors.bio = 'Bio is required';
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
+
+  const canGoNext = useMemo(() => {
+    if (step === 0) {
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+      const passwordOk = password.length >= 6;
+      const confirmOk = password === confirmPassword;
+      return emailOk && passwordOk && confirmOk;
+    }
+    if (step === 1) {
+      const nameOk = fullName.trim().length > 0;
+      const dobOk =
+        dateOfBirth.trim().length > 0 &&
+        !isNaN(new Date(dateOfBirth).getTime()) &&
+        new Date(dateOfBirth) <= new Date();
+      const interestsOk = interests.length >= 1;
+      const genderOk = gender === 'male' || gender === 'female';
+      const occupationOk = occupationId != null && occupationId.length > 0;
+      return nameOk && dobOk && interestsOk && genderOk && occupationOk;
+    }
+    if (step === 2) {
+      const phoneOk = phone.trim().length > 0;
+      const messengerOk = messenger.length >= 1;
+      return phoneOk && messengerOk;
+    }
+    if (step === 3) {
+      return Object.values(socialNetworks).some(
+        (v) => typeof v === 'string' && v.trim().length > 0
+      );
+    }
+    if (step === 4) {
+      const hasPhoto = profilePhotoUri != null || profilePhotoBase64 != null;
+      const hasBio = bio.trim().length > 0;
+      return hasPhoto && hasBio;
+    }
+    return true; // step 5 (Location)
+  }, [
+    step,
+    email,
+    password,
+    confirmPassword,
+    fullName,
+    dateOfBirth,
+    interests,
+    phone,
+    messenger,
+    socialNetworks,
+    profilePhotoUri,
+    profilePhotoBase64,
+    bio,
+  ]);
 
   function toggleInterest(interest: string) {
     setInterests((prev) =>
@@ -289,6 +379,9 @@ export default function OnboardingScreen() {
         fullName: fullName.trim(),
         dateOfBirth: dateOfBirth.trim(),
         interests,
+        gender: gender ?? 'male',
+        occupationId,
+        countryCode,
         phone: fullPhone,
         messenger,
         socialNetworks,
@@ -352,6 +445,9 @@ export default function OnboardingScreen() {
           lat: payload.coords?.lat ?? null,
           lng: payload.coords?.lng ?? null,
           city: payload.city?.trim() || null,
+          country: payload.countryCode?.trim() || null,
+          gender: payload.gender || null,
+          occupation_id: payload.occupationId || null,
         };
         const { error: profileError } = await supabase.from('profiles').upsert(profileRow, { onConflict: 'id' });
         if (profileError) {
@@ -527,16 +623,28 @@ export default function OnboardingScreen() {
                   <Ionicons name="calendar-outline" size={22} color={themeColors.text.muted} />
                 </TouchableOpacity>
                 {errors.dateOfBirth ? <Text style={styles.errorText}>{errors.dateOfBirth}</Text> : null}
-                {showDatePicker && (
-                  <>
-                    <DateTimePicker
-                      value={datePickerValue}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      onChange={onDatePickerChange}
-                      maximumDate={new Date()}
-                      minimumDate={new Date(1900, 0, 1)}
-                    />
+              </View>
+
+              {/* Date picker in Modal so it displays reliably on real devices (avoids ScrollView/layout issues) */}
+              <Modal
+                visible={showDatePicker}
+                transparent
+                animationType={Platform.OS === 'ios' ? 'slide' : 'fade'}
+                onRequestClose={() => setShowDatePicker(false)}
+              >
+                <Pressable style={styles.datePickerModalOverlay} onPress={() => setShowDatePicker(false)}>
+                  <View style={styles.datePickerModalContent} onStartShouldSetResponder={() => true}>
+                    <View style={styles.datePickerSpinnerWrap}>
+                      <DateTimePicker
+                        value={datePickerValue}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={onDatePickerChange}
+                        maximumDate={new Date()}
+                        minimumDate={new Date(1900, 0, 1)}
+                        style={Platform.OS === 'ios' ? styles.datePickerSpinner : undefined}
+                      />
+                    </View>
                     {Platform.OS === 'ios' && (
                       <TouchableOpacity
                         style={styles.datePickerDoneBtn}
@@ -546,9 +654,9 @@ export default function OnboardingScreen() {
                         <Text style={styles.datePickerDoneBtnText}>Done</Text>
                       </TouchableOpacity>
                     )}
-                  </>
-                )}
-              </View>
+                  </View>
+                </Pressable>
+              </Modal>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Interests</Text>
                 <View style={styles.chipsRow}>
@@ -564,6 +672,41 @@ export default function OnboardingScreen() {
                   ))}
                 </View>
                 {errors.interests ? <Text style={styles.errorText}>{errors.interests}</Text> : null}
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Gender</Text>
+                <View style={styles.chipsRow}>
+                  <TouchableOpacity
+                    style={[styles.chip, gender === 'male' && styles.chipActive]}
+                    onPress={() => setGender('male')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.chipText, gender === 'male' && styles.chipTextActive]}>Male</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.chip, gender === 'female' && styles.chipActive]}
+                    onPress={() => setGender('female')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.chipText, gender === 'female' && styles.chipTextActive]}>Female</Text>
+                  </TouchableOpacity>
+                </View>
+                {errors.gender ? <Text style={styles.errorText}>{errors.gender}</Text> : null}
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Work</Text>
+                <TouchableOpacity
+                  style={[styles.input, styles.dateInputTouchable, errors.occupation ? styles.inputError : null]}
+                  onPress={() => !loading && setOccupationModalVisible(true)}
+                  activeOpacity={0.7}
+                  disabled={loading}
+                >
+                  <Text style={selectedOccupation ? styles.dateInputText : styles.dateInputPlaceholder}>
+                    {selectedOccupation ? selectedOccupation.name : 'Select work'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={22} color={themeColors.text.muted} />
+                </TouchableOpacity>
+                {errors.occupation ? <Text style={styles.errorText}>{errors.occupation}</Text> : null}
               </View>
             </View>
           )}
@@ -618,6 +761,7 @@ export default function OnboardingScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
+                {errors.messenger ? <Text style={styles.errorText}>{errors.messenger}</Text> : null}
               </View>
             </View>
           )}
@@ -625,6 +769,9 @@ export default function OnboardingScreen() {
           {/* Step 3: Social */}
           {step === 3 && (
             <View style={styles.form}>
+              {errors.socialNetworks ? (
+                <Text style={[styles.errorText, { marginBottom: 8 }]}>{errors.socialNetworks}</Text>
+              ) : null}
               {(['instagram', 'facebook', 'twitter', 'linkedin'] as const).map((key) => (
                 <View key={key} style={styles.inputGroup}>
                   <Text style={styles.label}>{key === 'twitter' ? 'X (Twitter)' : key}</Text>
@@ -652,7 +799,7 @@ export default function OnboardingScreen() {
                     {profilePhotoUri ? (
                       <Image source={{ uri: profilePhotoUri }} style={styles.avatar} />
                     ) : (
-                      <View style={styles.avatarPlaceholder}>
+                      <View style={[styles.avatarPlaceholder, errors.profilePhoto ? styles.inputError : null]}>
                         <Ionicons name="camera-outline" size={32} color={themeColors.text.muted} />
                       </View>
                     )}
@@ -661,11 +808,12 @@ export default function OnboardingScreen() {
                     <Text style={styles.addPhotoBtnText}>Add photo</Text>
                   </TouchableOpacity>
                 </View>
+                {errors.profilePhoto ? <Text style={styles.errorText}>{errors.profilePhoto}</Text> : null}
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Bio</Text>
                 <TextInput
-                  style={[styles.input, styles.bioInput]}
+                  style={[styles.input, styles.bioInput, errors.bio ? styles.inputError : null]}
                   placeholder="A short bio about you"
                   placeholderTextColor={themeColors.text.muted}
                   value={bio}
@@ -674,6 +822,7 @@ export default function OnboardingScreen() {
                   numberOfLines={4}
                   editable={!loading}
                 />
+                {errors.bio ? <Text style={styles.errorText}>{errors.bio}</Text> : null}
               </View>
             </View>
           )}
@@ -702,9 +851,13 @@ export default function OnboardingScreen() {
         {/* Floating Next button - above keyboard via KeyboardAvoidingView */}
         <View style={[styles.floatingFooter, { paddingBottom: insets.bottom + 12 }]}>
           <TouchableOpacity
-            style={[styles.btnPrimary, styles.btnSingle, loading && styles.btnDisabled]}
+            style={[
+              styles.btnPrimary,
+              styles.btnSingle,
+              (loading || !canGoNext) && styles.btnDisabled,
+            ]}
             onPress={handleNext}
-            disabled={loading}
+            disabled={loading || !canGoNext}
             activeOpacity={0.8}
           >
             {loading ? (
@@ -785,6 +938,76 @@ export default function OnboardingScreen() {
             )}
           </View>
         </Pressable>
+      </Modal>
+
+      {/* Work picker: dropdown with search, keyboard avoiding */}
+      <Modal visible={occupationModalVisible} transparent animationType="slide">
+        <KeyboardAvoidingView
+          style={styles.modalKeyboardAvoid}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => {
+              setOccupationModalVisible(false);
+              setOccupationSearch('');
+            }}
+          >
+            <View style={styles.modalContent} pointerEvents="box-none" onStartShouldSetResponder={() => true}>
+              <View style={styles.modalHandle} />
+              <Text style={styles.modalTitle}>Select work</Text>
+              <Text style={styles.modalSubtitle}>Search or scroll to choose your work.</Text>
+              <View style={styles.modalSearchWrap} pointerEvents="box-none">
+                <Ionicons name="search" size={20} color={themeColors.text.muted} style={styles.modalSearchIcon} pointerEvents="none" />
+                <TextInput
+                  style={styles.modalSearchInput}
+                  placeholder="Search work..."
+                  placeholderTextColor={themeColors.text.muted}
+                  value={occupationSearch}
+                  onChangeText={setOccupationSearch}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  autoFocus
+                  returnKeyType="search"
+                  clearButtonMode="while-editing"
+                />
+              </View>
+              {occupationsLoading ? (
+                <View style={styles.modalEmptyWrap}>
+                  <ActivityIndicator size="small" color={themeColors.text.muted} />
+                  <Text style={[styles.modalEmptyText, { marginTop: 8 }]}>Loading…</Text>
+                </View>
+              ) : filteredOccupations.length === 0 ? (
+                <View style={styles.modalEmptyWrap}>
+                  <Text style={styles.modalEmptyText}>No work matches your search.</Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={filteredOccupations}
+                  extraData={occupationSearch}
+                  keyExtractor={(o) => o.id}
+                  style={styles.modalList}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="on-drag"
+                  renderItem={({ item: o }) => (
+                    <TouchableOpacity
+                      style={[styles.modalOption, occupationId === o.id && styles.modalOptionActive]}
+                      onPress={() => {
+                        setOccupationId(o.id);
+                        setOccupationModalVisible(false);
+                        setOccupationSearch('');
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.modalOptionLabel} numberOfLines={1}>{o.name}</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+            </View>
+          </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -892,6 +1115,28 @@ const styles = StyleSheet.create({
   },
   dateInputText: { fontSize: 16, color: themeColors.text.primary },
   dateInputPlaceholder: { fontSize: 16, color: themeColors.text.muted },
+  datePickerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  datePickerModalContent: {
+    backgroundColor: themeColors.background.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 32,
+    minHeight: 280,
+  },
+  datePickerSpinnerWrap: {
+    alignItems: 'center',
+    minHeight: 220,
+  },
+  datePickerSpinner: {
+    height: 216,
+    width: '100%',
+  },
   datePickerDoneBtn: {
     marginTop: 12,
     paddingVertical: 12,
@@ -1012,6 +1257,7 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' },
   footerText: { fontSize: 14, color: themeColors.text.muted },
   footerLink: { fontSize: 14, fontWeight: '600', color: themeColors.primary },
+  modalKeyboardAvoid: { flex: 1 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   modalContent: {
     backgroundColor: themeColors.background.card,

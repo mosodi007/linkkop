@@ -276,3 +276,10 @@ export const COUNTRY_OPTIONS: CountryOption[] = RAW_COUNTRIES.map(({ country, co
     iso2: iso,
   };
 });
+
+/** Country display name by ISO2 code (e.g. 'NG' -> 'Nigeria'). */
+export function getCountryName(iso2: string | null | undefined): string | null {
+  if (!iso2?.trim()) return null;
+  const c = RAW_COUNTRIES.find((r) => r.iso === iso2.trim().toUpperCase());
+  return c ? c.country : null;
+}

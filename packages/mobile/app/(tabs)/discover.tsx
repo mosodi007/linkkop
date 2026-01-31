@@ -14,9 +14,11 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors } from '../../lib/ThemeContext';
 import { useDiscoverProfiles, type DiscoverUser } from '../../lib/discover';
+import { maskPhoneNumber } from '../../lib/utils';
 
 const PLACEHOLDER_AVATAR =
   'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop';
@@ -75,14 +77,20 @@ function getUsersByCategory(users: DiscoverUser[], category: CategoryKey): Disco
 function DiscoverUserCard({
   user,
   onConnect,
+  onViewProfile,
 }: {
   user: DiscoverUser;
   onConnect: (userId: string) => void;
+  onViewProfile: (userId: string) => void;
 }) {
   const photo = user.photo || PLACEHOLDER_AVATAR;
   return (
     <View style={styles.card}>
-      <View style={styles.cardImageContainer}>
+      <TouchableOpacity
+        style={styles.cardImageContainer}
+        onPress={() => onViewProfile(user.id)}
+        activeOpacity={0.9}
+      >
         <Image source={{ uri: photo }} style={styles.cardImage} resizeMode="cover" />
         <View style={styles.cardOverlay}>
           <View style={styles.cardOverlayText}>
@@ -110,8 +118,12 @@ function DiscoverUserCard({
             </View>
           ) : null}
         </View>
-      </View>
-      <View style={styles.cardBody}>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.cardBody}
+        onPress={() => onViewProfile(user.id)}
+        activeOpacity={1}
+      >
         {user.bio ? (
           <>
             <Text style={styles.cardBio} numberOfLines={3}>
@@ -136,7 +148,7 @@ function DiscoverUserCard({
                 </View>
               ) : null}
               {user.phone ? (
-                <Text style={styles.cardPhone}>{user.phone}</Text>
+                <Text style={styles.cardPhone}>{maskPhoneNumber(user.phone)}</Text>
               ) : null}
             </View>
           </View>
@@ -149,12 +161,13 @@ function DiscoverUserCard({
           <Ionicons name="person-add-outline" size={18} color={themeColors.text.inverse} />
           <Text style={styles.connectBtnText}>Request Contact</Text>
         </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }
 
 export default function DiscoverScreen() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -187,6 +200,10 @@ export default function DiscoverScreen() {
       'Connection request sent',
       `You requested to connect with ${user?.name ?? 'this person'}.`
     );
+  };
+
+  const handleViewProfile = (userId: string) => {
+    router.push(`/user/${userId}`);
   };
 
   const categoryDesc = CATEGORIES.find((c) => c.key === activeCategory)?.description ?? '';
@@ -251,7 +268,11 @@ export default function DiscoverScreen() {
           data={filteredUsers}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <DiscoverUserCard user={item} onConnect={handleConnect} />
+            <DiscoverUserCard
+              user={item}
+              onConnect={handleConnect}
+              onViewProfile={handleViewProfile}
+            />
           )}
           ListHeaderComponent={listHeader}
           contentContainerStyle={styles.listContent}

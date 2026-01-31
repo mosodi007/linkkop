@@ -11,6 +11,8 @@ export interface Post {
   createdAt: string; // ISO date
   likes: number;
   comments: number;
+  /** True if the current user has liked this post (set when feed is fetched with current user). */
+  likedByMe?: boolean;
 }
 
 export const mockPosts: Post[] = [

@@ -1,3 +1,8 @@
+export interface OccupationRow {
+  id: string;
+  name: string;
+}
+
 export interface ProfileRow {
   id: string;
   full_name: string;
@@ -12,6 +17,9 @@ export interface ProfileRow {
   lat: number | null;
   lng: number | null;
   city: string | null;
+  country: string | null;
+  gender: string | null;
+  occupation_id: string | null;
   created_at: string;
   updated_at: string;
   post_visibility?: 'everyone' | 'contacts' | 'only_me';
@@ -66,6 +74,7 @@ export interface PostRow {
   likes_count: number;
   comments_count: number;
   created_at: string;
+  hidden_by_author?: boolean;
 }
 
 export interface DiscoverPostRow {

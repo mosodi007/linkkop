@@ -13,6 +13,9 @@ export interface OnboardingPayload {
   fullName: string;
   dateOfBirth: string; // ISO date YYYY-MM-DD
   interests: string[];
+  gender: 'male' | 'female';
+  occupationId: string | null;
+  countryCode: string; // ISO2 e.g. 'NG'
   phone: string; // full number with dial code
   messenger: string[];
   socialNetworks: OnboardingSocialNetworks;

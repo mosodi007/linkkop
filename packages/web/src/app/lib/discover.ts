@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/app/lib/supabase';
-import type { DiscoverProfileRow, DiscoverPostRow } from '@/app/types/database';
+import type { ProfileRow, DiscoverPostRow } from '@/app/types/database';
 import type { User } from '@/app/data/mockUsers';
-import { mockUsers } from '@/app/data/mockUsers';
 import type { Post } from '@/app/data/mockPosts';
 
 function ageFromDateOfBirth(dateOfBirth: string | null): number {
@@ -18,7 +17,8 @@ function ageFromDateOfBirth(dateOfBirth: string | null): number {
   return Math.max(18, Math.min(99, age));
 }
 
-export function mapDiscoverProfileToUser(row: DiscoverProfileRow): User {
+/** Maps a row from the profiles table to the Discover User type. */
+export function mapProfileToUser(row: ProfileRow): User {
   const social = (row.social_networks ?? {}) as Record<string, string>;
   return {
     id: row.id,
@@ -26,7 +26,7 @@ export function mapDiscoverProfileToUser(row: DiscoverProfileRow): User {
     age: ageFromDateOfBirth(row.date_of_birth),
     gender: 'other',
     city: row.city ?? '',
-    distance: Number(row.distance_km) ?? 0,
+    distance: 0,
     photo: row.avatar_url ?? '',
     bio: row.bio ?? '',
     interests: row.interests ?? [],
@@ -37,62 +37,66 @@ export function mapDiscoverProfileToUser(row: DiscoverProfileRow): User {
       facebook: social.facebook,
     },
     phone: row.phone ?? '',
-    occupation: row.occupation ?? '',
+    occupation: 'Member',
     messenger: row.messenger ?? [],
   };
 }
 
-export function useDiscoverProfiles(): {
+/** Fetches registered users from the profiles table. Pass current user id to exclude self. */
+export function useDiscoverProfiles(excludeUserId?: string | null): {
   users: User[];
   loading: boolean;
   error: Error | null;
+  refresh: () => Promise<void>;
 } {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(!!supabase);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!supabase) {
-      setUsers(mockUsers);
+      setUsers([]);
       setLoading(false);
+      setError(null);
       return;
     }
-    let cancelled = false;
-    (async () => {
-      const { data, error: e } = await supabase
-        .from('profiles_discover')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (cancelled) return;
-      if (e) {
-        setError(e as Error);
-        setUsers(mockUsers);
-      } else {
-        setUsers((data ?? []).map(mapDiscoverProfileToUser));
-      }
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    setLoading(true);
+    setError(null);
+    const { data, error: e } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (e) {
+      setError(e as Error);
+      setUsers([]);
+    } else {
+      const list = (data ?? []).map((row) => mapProfileToUser(row as ProfileRow));
+      const filtered = excludeUserId
+        ? list.filter((u) => u.id !== excludeUserId)
+        : list;
+      setUsers(filtered);
+    }
+    setLoading(false);
+  }, [excludeUserId]);
 
-  return { users, loading, error };
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return { users, loading, error, refresh: load };
 }
 
 export async function fetchDiscoverProfileById(
   id: string
 ): Promise<User | null> {
-  if (!supabase) {
-    return mockUsers.find((u) => u.id === id) ?? null;
-  }
+  if (!supabase) return null;
   const { data, error } = await supabase
-    .from('profiles_discover')
+    .from('profiles')
     .select('*')
     .eq('id', id)
     .single();
   if (error || !data) return null;
-  return mapDiscoverProfileToUser(data as DiscoverProfileRow);
+  return mapProfileToUser(data as ProfileRow);
 }
 
 function mapDiscoverPostToPost(row: DiscoverPostRow, author: User): Post {
@@ -120,12 +124,7 @@ export async function fetchDiscoverPostsByAuthorId(
   authorId: string,
   author: User
 ): Promise<Post[]> {
-  if (!supabase) {
-    const mockPostList = (await import('@/app/data/mockPosts')).mockPosts;
-    return mockPostList
-      .filter((p) => p.authorId === authorId)
-      .map((p) => ({ ...p, author: { id: author.id, name: author.name, photo: author.photo, occupation: author.occupation, city: author.city } }));
-  }
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from('posts_discover')
     .select('*')

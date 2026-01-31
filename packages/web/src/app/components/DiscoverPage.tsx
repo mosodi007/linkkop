@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { User } from '@/app/data/mockUsers';
 import { UserCard } from '@/app/components/UserCard';
 import { useDiscoverProfiles } from '@/app/lib/discover';
+import { useAuth } from '@/app/lib/auth';
 import { Search } from 'lucide-react';
 import { Input } from '@/app/components/ui/input';
 import { toast } from 'sonner';
@@ -39,7 +40,8 @@ function getUsersByCategory(users: User[], category: CategoryKey): User[] {
 export function DiscoverPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('all');
-  const { users, loading } = useDiscoverProfiles();
+  const { user } = useAuth();
+  const { users, loading } = useDiscoverProfiles(user?.id);
 
   const handleRequestContact = (userId: string) => {
     const user = users.find((u) => u.id === userId);

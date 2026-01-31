@@ -190,7 +190,22 @@ export function PersonalProfilePage() {
             ) : posts.length > 0 ? (
               <div className="space-y-4">
                 {posts.map((post) => (
-                  <PostCard key={post.id} post={post} />
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onPostUpdated={(updated) =>
+                      setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+                    }
+                    onPostDeleted={(postId) =>
+                      setPosts((prev) => prev.filter((p) => p.id !== postId))
+                    }
+                    onPostLiked={(postId, likesCount) =>
+                      setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, likes: likesCount } : p)))
+                    }
+                    onCommentAdded={(postId, commentsCount) =>
+                      setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, comments: commentsCount } : p)))
+                    }
+                  />
                 ))}
               </div>
             ) : (

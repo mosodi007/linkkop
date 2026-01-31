@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { User, getMessengerIconUrl } from '@/app/data/mockUsers';
-import { fetchDiscoverProfileById, fetchDiscoverPostsByAuthorId } from '@/app/lib/discover';
+import { fetchDiscoverProfileById } from '@/app/lib/discover';
+import { fetchPostsByAuthorId } from '@/app/lib/feed';
+import { maskPhoneNumber } from '@/app/lib/utils';
 import type { Post } from '@/app/data/mockPosts';
 import { Button } from '@/app/components/ui/button';
 import { PostCard } from '@/app/components/PostCard';
@@ -37,7 +39,12 @@ export function UserProfilePage() {
         setLoading(false);
         if (u) {
           setPostsLoading(true);
-          fetchDiscoverPostsByAuthorId(u.id, u).then((p) => {
+          fetchPostsByAuthorId(u.id, {
+            id: u.id,
+            full_name: u.name,
+            avatar_url: u.photo || null,
+            city: u.city || null,
+          }).then((p) => {
             if (!cancelled) {
               setPosts(p);
               setPostsLoading(false);
@@ -138,7 +145,13 @@ export function UserProfilePage() {
           ) : posts.length > 0 ? (
             <div className="space-y-4">
               {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onCommentAdded={(postId, commentsCount) =>
+                    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, comments: commentsCount } : p)))
+                  }
+                />
               ))}
             </div>
           ) : (
@@ -229,7 +242,7 @@ export function UserProfilePage() {
                 </h3>
                 <p className="text-neutral-700 font-mono text-sm flex items-center gap-2">
                   <Phone className="w-4 h-4 text-neutral-500 shrink-0" />
-                  {user.phone}
+                  {maskPhoneNumber(user.phone)}
                 </p>
               </div>
               {user.messenger && user.messenger.length > 0 && (

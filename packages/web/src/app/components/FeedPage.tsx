@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import type { Post } from '@/app/data/mockPosts';
 import { fetchFeedPosts, createFeedPost } from '@/app/lib/feed';
 import { PostCard } from '@/app/components/PostCard';
@@ -26,16 +27,20 @@ export function FeedPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchFeedPosts().then((list) => {
-      if (!cancelled) {
-        setPosts(list);
-        setLoading(false);
-      }
-    });
+    setLoading(true);
+    fetchFeedPosts(profile?.id ?? null)
+      .then((list) => {
+        if (!cancelled) {
+          setPosts(list);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [profile?.id]);
 
   const currentAuthor = profile
     ? {
@@ -109,12 +114,18 @@ export function FeedPage() {
         {/* Compose box */}
         <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden mb-6">
           <div className="p-4 flex gap-3">
-            <Avatar className="h-10 w-10 shrink-0 rounded-full border border-neutral-200">
-              <AvatarImage src={currentAuthor.photo} alt={currentAuthor.name} />
-              <AvatarFallback className="bg-neutral-200 text-neutral-600 text-sm">
-                {currentAuthor.name.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <Link
+              to="/profile"
+              className="shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2"
+              aria-label="Your profile"
+            >
+              <Avatar className="h-10 w-10 rounded-full border border-neutral-200">
+                <AvatarImage src={currentAuthor.photo} alt={currentAuthor.name} />
+                <AvatarFallback className="bg-neutral-200 text-neutral-600 text-sm">
+                  {currentAuthor.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
             <div className="flex-1 min-w-0">
               <textarea
                 value={composeText}
@@ -176,7 +187,25 @@ export function FeedPage() {
         ) : posts.length > 0 ? (
           <div className="space-y-4">
             {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+              <PostCard
+                key={post.id}
+                post={post}
+                onPostUpdated={(updated) =>
+                  setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+                }
+                onPostHidden={(postId) =>
+                  setPosts((prev) => prev.filter((p) => p.id !== postId))
+                }
+                onPostDeleted={(postId) =>
+                  setPosts((prev) => prev.filter((p) => p.id !== postId))
+                }
+                onPostLiked={(postId, likesCount) =>
+                  setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, likes: likesCount } : p)))
+                }
+                onCommentAdded={(postId, commentsCount) =>
+                  setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, comments: commentsCount } : p)))
+                }
+              />
             ))}
           </div>
         ) : (

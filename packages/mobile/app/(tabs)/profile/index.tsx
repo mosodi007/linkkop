@@ -9,7 +9,7 @@ const SETTINGS_GROUPS = [
   {
     title: 'Account',
     items: [
-      { icon: 'person-outline' as const, label: 'Profile', description: 'Name, photo, bio' },
+      { icon: 'person-outline' as const, label: 'Profile', description: 'Name, photo, bio', route: 'personal' },
       { icon: 'notifications-outline' as const, label: 'Notifications', description: 'Push and email' },
     ],
   },
@@ -50,10 +50,10 @@ export default function SettingsScreen() {
   }
 
   function handleItemPress(item: (typeof SETTINGS_GROUPS)[0]['items'][0]) {
-    if ('route' in item && item.route === 'privacy') {
-      router.push('/profile/privacy');
+    if ('route' in item) {
+      if (item.route === 'privacy') router.push('/(tabs)/profile/privacy');
+      else if (item.route === 'personal') router.push('/(tabs)/profile/personal');
     }
-    // Profile, Notifications, Help: no navigation yet (placeholder)
   }
 
   return (

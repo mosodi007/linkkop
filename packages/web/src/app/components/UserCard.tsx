@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { User, getMessengerIconUrl } from '@/app/data/mockUsers';
+import { maskPhoneNumber } from '@/app/lib/utils';
 import { Linkedin, Twitter, Instagram, Facebook } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 
@@ -105,7 +106,7 @@ export function UserCard({ user, onRequestContact, profilePageUrl }: UserCardPro
                 </>
               )}
               {user.phone && (
-                <span className="text-sm font-mono text-neutral-700">{user.phone}</span>
+                <span className="text-sm font-mono text-neutral-700">{maskPhoneNumber(user.phone)}</span>
               )}
             </div>
           </div>

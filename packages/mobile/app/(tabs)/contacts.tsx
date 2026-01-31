@@ -14,6 +14,7 @@ import {
   Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors } from '../../lib/ThemeContext';
 import { useContacts, type ContactProfile } from '../../lib/contacts';
@@ -24,22 +25,30 @@ const PLACEHOLDER_AVATAR =
 function ContactCard({
   contact,
   onMore,
+  onViewProfile,
 }: {
   contact: ContactProfile;
   onMore: (contact: ContactProfile) => void;
+  onViewProfile: (contactId: string) => void;
 }) {
   const photo = contact.photo || PLACEHOLDER_AVATAR;
   return (
     <View style={styles.card}>
-      <Image source={{ uri: photo }} style={styles.avatar} />
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardName} numberOfLines={1}>
-          {contact.name}
-        </Text>
-        <Text style={styles.cardCity} numberOfLines={1}>
-          {contact.city || '—'}
-        </Text>
-      </View>
+      <TouchableOpacity
+        style={styles.cardMain}
+        onPress={() => onViewProfile(contact.id)}
+        activeOpacity={0.7}
+      >
+        <Image source={{ uri: photo }} style={styles.avatar} />
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardName} numberOfLines={1}>
+            {contact.name}
+          </Text>
+          <Text style={styles.cardCity} numberOfLines={1}>
+            {contact.city || '—'}
+          </Text>
+        </View>
+      </TouchableOpacity>
       <TouchableOpacity
         style={styles.moreBtn}
         onPress={() => onMore(contact)}
@@ -52,10 +61,15 @@ function ContactCard({
 }
 
 export default function ContactsScreen() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [moreContact, setMoreContact] = useState<ContactProfile | null>(null);
   const { contacts, loading, refresh, removeContactById } = useContacts();
+
+  const handleViewProfile = (contactId: string) => {
+    router.push(`/user/${contactId}`);
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -130,7 +144,11 @@ export default function ContactsScreen() {
           data={filteredContacts}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <ContactCard contact={item} onMore={setMoreContact} />
+            <ContactCard
+              contact={item}
+              onMore={setMoreContact}
+              onViewProfile={handleViewProfile}
+            />
           )}
           ListHeaderComponent={listHeader}
           contentContainerStyle={styles.listContent}
@@ -265,6 +283,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: themeColors.border.default,
+  },
+  cardMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: 0,
   },
   avatar: {
     width: 52,
