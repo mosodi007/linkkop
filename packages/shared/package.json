@@ -1,0 +1,12 @@
+{
+  "name": "@repo/shared",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./types/database.ts",
+  "types": "./types/database.ts",
+  "exports": {
+    ".": "./types/database.ts",
+    "./types": "./types/database.ts"
+  }
+}

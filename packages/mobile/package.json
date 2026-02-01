@@ -1,0 +1,51 @@
+{
+  "name": "@repo/mobile",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "main": "expo-router/entry",
+  "metro": "./metro.config.cjs",
+  "expo": {
+    "install": {
+      "exclude": ["babel-preset-expo"]
+    }
+  },
+  "scripts": {
+    "start": "expo start",
+    "ios": "expo start --ios",
+    "android": "expo start --android"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.26.0",
+    "@expo/vector-icons": "^14.1.0",
+    "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-community/datetimepicker": "8.4.1",
+    "@repo/shared": "workspace:*",
+    "@supabase/supabase-js": "^2.93.3",
+    "expo": "~53.0.0",
+    "expo-constants": "~17.1.8",
+    "expo-font": "~13.3.2",
+    "expo-file-system": "~18.1.11",
+    "expo-image-picker": "~16.1.4",
+    "expo-linking": "~7.1.7",
+    "expo-location": "~18.1.6",
+    "expo-router": "~5.1.10",
+    "expo-splash-screen": "~0.30.10",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.0.0",
+    "react-native": "0.79.6",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.11.1",
+    "react-native-url-polyfill": "^2.0.0"
+  },
+  "devDependencies": {
+    "@rnx-kit/metro-resolver-symlinks": "^0.2.11",
+    "babel-preset-expo": "~13.1.8",
+    "dotenv": "^16.4.5"
+  },
+  "peerDependencies": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  }
+}
