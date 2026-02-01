@@ -18,6 +18,7 @@ export interface CountryOption {
   dialCode: string;
   label: string;
   iso2: string;
+  name: string;
 }
 
 function normalizeDialCode(code: string): string {
@@ -273,5 +274,12 @@ export const COUNTRY_OPTIONS: CountryOption[] = [
     dialCode,
     label: `${country} (${dialCode})`,
     iso2: iso,
+    name: country,
   };
 });
+
+export function getCountryName(iso2: string | null | undefined): string {
+  if (!iso2?.trim()) return '';
+  const opt = COUNTRY_OPTIONS.find((o) => o.iso2.toUpperCase() === iso2.trim().toUpperCase());
+  return opt?.name ?? iso2;
+}

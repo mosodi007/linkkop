@@ -1,6 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/app/components/ui/button';
+import { getMessengerIconUrl } from '@/app/data/mockUsers';
+
+const MESSENGER_KEYS = ['whatsapp', 'signal', 'telegram', 'viber', 'wechat', 'line', 'imo'] as const;
 import {
   Select,
   SelectContent,
@@ -52,7 +55,22 @@ export function LandingPage() {
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         <div className="max-w-md w-full text-center space-y-8">
-          <div>
+          <div className="space-y-6">
+            <div className="flex items-center justify-center gap-4 flex-wrap">
+              {MESSENGER_KEYS.map((key) => {
+                const iconUrl = getMessengerIconUrl(key);
+                if (!iconUrl) return null;
+                return (
+                  <img
+                    key={key}
+                    src={iconUrl}
+                    alt={key}
+                    className="w-10 h-10 object-contain"
+                    title={key.charAt(0).toUpperCase() + key.slice(1)}
+                  />
+                );
+              })}
+            </div>
             <p className="text-neutral-600 text-lg leading-relaxed">
               {t('landing.tagline')}
             </p>

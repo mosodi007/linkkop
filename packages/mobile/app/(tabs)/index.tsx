@@ -22,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../lib/auth';
 import { themeColors } from '../../lib/ThemeContext';
 import { getCountryName } from '../../lib/countries';
+import { PhotoViewer } from '../../components/PhotoViewer';
 import {
   fetchFeedPosts,
   createFeedPost,
@@ -98,6 +99,7 @@ function FeedPostCard({
   const [comments, setComments] = useState<PostCommentDto[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
+  const [photoViewerVisible, setPhotoViewerVisible] = useState(false);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(null);
   const [replyingToComment, setReplyingToComment] = useState<PostCommentDto | null>(null);
@@ -272,9 +274,22 @@ function FeedPostCard({
       </View>
       <Text style={styles.cardContent}>{post.content}</Text>
       {post.image ? (
-        <View style={styles.cardImageWrap}>
-          <Image source={{ uri: post.image }} style={styles.cardImage} resizeMode="cover" />
-        </View>
+        <>
+          <TouchableOpacity
+            style={styles.cardImageWrap}
+            onPress={() => setPhotoViewerVisible(true)}
+            activeOpacity={1}
+            accessibilityLabel="View full size photo"
+            accessibilityRole="imagebutton"
+          >
+            <Image source={{ uri: post.image }} style={styles.cardImage} resizeMode="cover" />
+          </TouchableOpacity>
+          <PhotoViewer
+            uri={post.image}
+            visible={photoViewerVisible}
+            onClose={() => setPhotoViewerVisible(false)}
+          />
+        </>
       ) : null}
       <View style={styles.cardActions}>
         <View style={styles.cardActionRow}>

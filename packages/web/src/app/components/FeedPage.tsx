@@ -109,7 +109,7 @@ export function FeedPage() {
     <div className="min-h-screen bg-neutral-50 pb-24">
       <div className="max-w-xl mx-auto px-4 pt-6">
         <h1 className="text-xl font-semibold text-neutral-900 mb-1">Feed</h1>
-        <p className="text-sm text-neutral-500 mb-4">Public posts from people near you in Lagos</p>
+        <p className="text-sm text-neutral-500 mb-4">Public posts from people near you in {profile?.city}</p>
 
         {/* Compose box */}
         <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden mb-6">

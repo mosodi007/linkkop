@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { themeColors } from '../../../lib/ThemeContext';
 import { useAuth } from '../../../lib/auth';
 import { fetchMyPosts, type Post } from '../../../lib/feed';
+import { PhotoViewer } from '../../../components/PhotoViewer';
 
 const MESSENGER_LABELS: Record<string, string> = {
   whatsapp: 'WhatsApp',
@@ -47,6 +48,7 @@ export default function PersonalProfileScreen() {
   const [avatarError, setAvatarError] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [photoViewerUri, setPhotoViewerUri] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile) {
@@ -221,7 +223,14 @@ export default function PersonalProfileScreen() {
                 </View>
                 <Text style={styles.postContent}>{post.content}</Text>
                 {post.image ? (
-                  <Image source={{ uri: post.image }} style={styles.postImage} resizeMode="cover" />
+                  <TouchableOpacity
+                    onPress={() => setPhotoViewerUri(post.image!)}
+                    activeOpacity={1}
+                    accessibilityLabel="View full size photo"
+                    accessibilityRole="imagebutton"
+                  >
+                    <Image source={{ uri: post.image }} style={styles.postImage} resizeMode="cover" />
+                  </TouchableOpacity>
                 ) : null}
               </View>
             ))
@@ -244,6 +253,13 @@ export default function PersonalProfileScreen() {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+      {photoViewerUri ? (
+        <PhotoViewer
+          uri={photoViewerUri}
+          visible={!!photoViewerUri}
+          onClose={() => setPhotoViewerUri(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

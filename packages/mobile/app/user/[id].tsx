@@ -15,6 +15,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors } from '../../lib/ThemeContext';
 import { getCountryName } from '../../lib/countries';
+import { PhotoViewer } from '../../components/PhotoViewer';
 import { fetchUserProfile, type UserProfileDisplay } from '../../lib/userProfile';
 import { maskPhoneNumber } from '../../lib/utils';
 import { fetchPostsByAuthorId, type Post } from '../../lib/feed';
@@ -53,6 +54,7 @@ export default function UserProfileScreen() {
   const [avatarError, setAvatarError] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [photoViewerUri, setPhotoViewerUri] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -295,7 +297,16 @@ export default function UserProfileScreen() {
                 </View>
                 <Text style={styles.postContent}>{post.content}</Text>
                 {post.image ? (
-                  <Image source={{ uri: post.image }} style={styles.postImage} resizeMode="cover" />
+                  <>
+                    <TouchableOpacity
+                      onPress={() => setPhotoViewerUri(post.image!)}
+                      activeOpacity={1}
+                      accessibilityLabel="View full size photo"
+                      accessibilityRole="imagebutton"
+                    >
+                      <Image source={{ uri: post.image }} style={styles.postImage} resizeMode="cover" />
+                    </TouchableOpacity>
+                  </>
                 ) : null}
               </View>
             ))
@@ -310,6 +321,13 @@ export default function UserProfileScreen() {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+      {photoViewerUri ? (
+        <PhotoViewer
+          uri={photoViewerUri}
+          visible={!!photoViewerUri}
+          onClose={() => setPhotoViewerUri(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

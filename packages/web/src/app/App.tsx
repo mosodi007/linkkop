@@ -16,6 +16,7 @@ import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from '@/app/lib/auth';
 import { supabase } from '@/app/lib/supabase';
 import { ONBOARDING_COMPLETE_KEY } from '@/app/types/onboarding';
+import { getCountryName } from '@/app/data/countries';
 
 const navItems = [
   { path: '/feed', label: 'Feed', icon: LayoutDashboard },
@@ -104,7 +105,7 @@ function Header() {
           <span className="h-4 w-px bg-neutral-300" aria-hidden />
           <span className="flex items-center gap-1.5 text-xs text-neutral-500 font-medium">
             <MapPin className="size-3.5 shrink-0 text-neutral-400" />
-            {profile?.city ?? 'Lagos'}, Nigeria
+            {[profile?.city?.trim(), getCountryName(profile?.country)].filter(Boolean).join(', ') || '—'}
           </span>
         </div>
         <Link

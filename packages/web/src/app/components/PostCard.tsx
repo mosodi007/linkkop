@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/app/components/ui/dialog';
+import { PhotoViewer } from '@/app/components/PhotoViewer';
 import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { useAuth } from '@/app/lib/auth';
@@ -88,6 +89,7 @@ export function PostCard({
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(null);
   const [replyingToComment, setReplyingToComment] = useState<PostCommentDto | null>(null);
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
 
   const likesCount = localLikesCount ?? post.likes;
   const liked = localLiked ?? post.likedByMe ?? false;
@@ -290,13 +292,25 @@ export function PostCard({
 
       {/* Image */}
       {post.image && (
-        <div className="w-full aspect-[16/10] bg-neutral-100">
-          <img
+        <>
+          <button
+            type="button"
+            className="w-full aspect-[16/10] bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-[#41C28A] focus:ring-inset"
+            onClick={() => setPhotoViewerOpen(true)}
+            aria-label="View full size photo"
+          >
+            <img
+              src={post.image}
+              alt=""
+              className="w-full h-full object-cover cursor-pointer"
+            />
+          </button>
+          <PhotoViewer
             src={post.image}
-            alt=""
-            className="w-full h-full object-cover"
+            open={photoViewerOpen}
+            onOpenChange={setPhotoViewerOpen}
           />
-        </div>
+        </>
       )}
 
       {/* Actions */}
